@@ -44,14 +44,15 @@ class XboxDashboardEntity(XboxEntity):
 
 
 class XboxControlEntity(XboxEntity):
-    """Disponível no UnleashX (FTP) ou no XBMC com o servidor web respondendo."""
+    """Disponível no UnleashX ou no XBMC (HTTP API ou, sem ela, SITE do FTP do XBMC)."""
 
     @property
     def available(self) -> bool:
         # chama a base direto: no MRO dos botões o próximo seria XboxDashboardEntity
         if not XboxEntity.available.fget(self):
             return False
-        return self.in_dashboard or (self.data.get("activity") == ACT_XBMC and self.data.get("xbmc") is not None)
+        # no XBMC vale com ou sem servidor web: sem ele, os comandos vão pelo SITE do FTP do XBMC
+        return self.in_dashboard or (self.data.get("activity") == ACT_XBMC and bool(self.data.get("online")))
 
 
 class XboxXbmcEntity(XboxEntity):

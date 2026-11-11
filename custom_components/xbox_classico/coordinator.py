@@ -99,6 +99,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._drives_at = 0.0
         self._config_at = 0.0
         self._scan_task: asyncio.Task | None = None
+        self._rescan = False
         self._covers: dict[str, bytes | None] = {}
         self._store: Store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self._covers_dir = hass.config.path(f".storage/{DOMAIN}_covers")
@@ -254,6 +255,9 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         item = self.find_item(path) or {"name": path.rsplit("\\", 1)[-1], "path": path, "title_id": None}
         if activity == ACT_XBMC and self.xbmc_status is not None:
             reply = await self.hass.async_add_executor_job(self.xbmc.builtin, f"XBMC.RunXBE({item['path']})")
+        elif activity == ACT_XBMC:
+            # sem servidor web (ex.: XBMC4Gamers): built-in pelo SITE do FTP do XBMC
+            reply = await self.hass.async_add_executor_job(self.client.site_fire, f"RunXBE({item['path']})")
         elif activity == ACT_DASHBOARD:
             reply = await self.hass.async_add_executor_job(self.client.execute, item["path"])
         else:
@@ -282,6 +286,10 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             builtin = {"POWERCYCLE": "XBMC.Reboot", "REBOOT": "XBMC.Reboot", "SHUTDOWN": "XBMC.Shutdown"}[command]
             await self.hass.async_add_executor_job(self.xbmc.builtin, builtin)
             self.quiet()
+        elif activity == ACT_XBMC:
+            site = {"POWERCYCLE": "Reboot", "REBOOT": "Reboot", "SHUTDOWN": "ShutDown"}[command]
+            await self.hass.async_add_executor_job(self.client.site_fire, site)
+            self.quiet()
         elif activity == ACT_DASHBOARD:
             await self.async_site(command, fire=True)
             self.quiet()
@@ -305,6 +313,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def async_start_scan(self) -> None:
         if self.scanning:
+            self._rescan = True  # pedido durante uma varredura: roda de novo ao terminar
             return
         self._scan_task = self.config_entry.async_create_background_task(
             self.hass, self._async_scan(), f"{DOMAIN}_scan"
@@ -330,6 +339,9 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self.async_cover(item["title_id"], item["path"])
         LOGGER.info("biblioteca do Xbox: %d itens, %d pastas de save", len(self.library), len(saves))
         self.async_update_listeners()
+        if self._rescan:
+            self._rescan = False
+            self.hass.async_create_task(self._async_scan(), f"{DOMAIN}_rescan")
 
     # ------------------------------------------------------------ capas
 
