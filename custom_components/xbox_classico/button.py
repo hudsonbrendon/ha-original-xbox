@@ -15,9 +15,9 @@ from .entity import XboxControlEntity, XboxDashboardEntity
 
 # chave -> (comando SITE, derruba a conexão?, categoria)
 SITE_BUTTONS = {
-    "reiniciar": ("REBOOT", True, None),
+    # REBOOT do UnleashX 0.37 chama XLaunchNewImage(NULL) e falha calado; POWERCYCLE reinicia de fato
+    "reiniciar": ("POWERCYCLE", True, None),
     "desligar": ("SHUTDOWN", True, None),
-    "reinicio_completo": ("POWERCYCLE", True, EntityCategory.CONFIG),
     "abrir_bandeja": ("TRAYOPEN", False, None),
     "fechar_bandeja": ("TRAYCLOSE", False, None),
     "reiniciar_rede": ("NETRESET", True, EntityCategory.DIAGNOSTIC),
@@ -36,13 +36,13 @@ async def async_setup_entry(
     )
 
 
-POWER_KEYS = {"reiniciar", "desligar", "reinicio_completo", "recarregar_dashboard", "dashboard_microsoft"}
+POWER_KEYS = {"reiniciar", "desligar", "recarregar_dashboard", "dashboard_microsoft"}
 
 
 class XboxButton(XboxDashboardEntity, ButtonEntity):
     def __init__(self, coordinator, key: str) -> None:
         super().__init__(coordinator, key)
-        if key in ("reiniciar", "reinicio_completo"):
+        if key == "reiniciar":
             self._attr_device_class = ButtonDeviceClass.RESTART
         if key in SITE_BUTTONS:
             self._attr_entity_category = SITE_BUTTONS[key][2]
@@ -53,7 +53,7 @@ class XboxButton(XboxDashboardEntity, ButtonEntity):
         key = self._attr_translation_key
         c = self.coordinator
         try:
-            if key in ("reiniciar", "desligar", "reinicio_completo"):
+            if key in ("reiniciar", "desligar"):
                 await c.async_power(SITE_BUTTONS[key][0])
             elif key in SITE_BUTTONS:
                 command, fire, _ = SITE_BUTTONS[key]

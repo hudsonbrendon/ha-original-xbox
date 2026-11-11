@@ -279,7 +279,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """REBOOT/SHUTDOWN/POWERCYCLE pelo UnleashX ou pelo XBMC, conforme quem está aberto."""
         activity = (self.data or {}).get("activity")
         if activity == ACT_XBMC and self.xbmc_status is not None:
-            builtin = {"REBOOT": "XBMC.Reboot", "SHUTDOWN": "XBMC.Shutdown", "POWERCYCLE": "XBMC.Restart"}[command]
+            builtin = {"POWERCYCLE": "XBMC.Reboot", "REBOOT": "XBMC.Reboot", "SHUTDOWN": "XBMC.Shutdown"}[command]
             await self.hass.async_add_executor_job(self.xbmc.builtin, builtin)
             self.quiet()
         elif activity == ACT_DASHBOARD:

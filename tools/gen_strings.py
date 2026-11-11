@@ -7,7 +7,7 @@ ENT = {
   "binary_sensor": {"ftp": ("Dashboard", "Dashboard"), "rede": ("Rede", "Network"), "travado": ("Travado", "Frozen")},
   "button": {
     "reiniciar": ("Reiniciar", "Restart"), "desligar": ("Desligar", "Shut down"),
-    "reinicio_completo": ("Reinício completo", "Power cycle"), "abrir_bandeja": ("Abrir bandeja", "Open tray"),
+    "abrir_bandeja": ("Abrir bandeja", "Open tray"),
     "fechar_bandeja": ("Fechar bandeja", "Close tray"), "reiniciar_rede": ("Reiniciar rede", "Restart network"),
     "reiniciar_ftp": ("Reiniciar FTP", "Restart FTP"), "recarregar_dashboard": ("Recarregar dashboard", "Reload dashboard"),
     "dashboard_microsoft": ("Dashboard Microsoft", "Microsoft dashboard"), "backup_saves": ("Backup dos saves", "Back up saves"),

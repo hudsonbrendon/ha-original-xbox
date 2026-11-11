@@ -53,9 +53,6 @@
       "desligar": {
         "name": "Shut down"
       },
-      "reinicio_completo": {
-        "name": "Power cycle"
-      },
       "abrir_bandeja": {
         "name": "Open tray"
       },

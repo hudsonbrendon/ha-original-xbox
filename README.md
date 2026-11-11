@@ -10,7 +10,7 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 |---|---|
 | Media player | estado (desligado / dashboard / jogando), jogo atual com capa, **abrir jogo/app** (`select_source`, `play_media`), biblioteca navegável com capas, desligar; no XBMC: play/pausa/parar/próxima/anterior/volume/mudo/seek |
 | Sensores | atividade, jogo atual, último jogo, última sessão (min), nº de jogos / apps / saves, espaço livre e uso (%) de C, E, F, G, X, Y, Z, versão do dashboard; no XBMC: temperatura da GPU/CPU, ventoinha, memória livre, tela do XBMC, versão do XBMC |
-| Botões | reiniciar, desligar, reinício completo, abrir/fechar bandeja, reiniciar rede, reiniciar FTP, recarregar dashboard, dashboard Microsoft, backup dos saves, atualizar biblioteca |
+| Botões | reiniciar (POWERCYCLE — o `REBOOT` do UnleashX 0.37 não funciona), desligar, abrir/fechar bandeja, reiniciar rede, reiniciar FTP, recarregar dashboard, dashboard Microsoft, backup dos saves, atualizar biblioteca |
 | Selects | abrir jogo, abrir aplicativo |
 | Switches (Config.xml) | sincronizar relógio (SNTP), abrir jogo/DVD/CD/dados ao inserir, notícias, widescreen, 1080i, Fahrenheit |
 | Números (Config.xml) | proteção de tela, desligamento automático |
@@ -35,7 +35,7 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 - **Config.xml**: editado no lugar (só o valor muda), com backup em `C:\Config.xml.ha-backup` na primeira escrita; o dashboard é recarregado para aplicar.
 
 ### Comandos SITE do UnleashX 0.37 (RE)
-`REBOOT`, `RESTART`, `SHUTDOWN`, `POWERCYCLE`, `FTPRESET`, `FTPSTOP`, `NETRESET`, `TRAYOPEN`/`EJECT`, `TRAYCLOSE`, `DRIVESTAT`, `EXEC <xbe>`, `LAUNCH <xbe>`, `MD5 <arquivo>`, `XBERENAME`, `FREESPACE <drive>`, `FREEROOTSPACEDISABLE`, `TITLES`, `TITLEIMAGE`, `MAKE_FILE_TREE`.
+`REBOOT`/`RESTART` (chamam `XLaunchNewImage(NULL)` e falham calados neste build), `SHUTDOWN`, `POWERCYCLE` (reinicia de fato; responde 502 depois de agir), `FTPRESET`, `FTPSTOP`, `NETRESET`, `TRAYOPEN`/`EJECT`, `TRAYCLOSE`, `DRIVESTAT`, `EXEC <xbe>`, `LAUNCH <xbe>`, `MD5 <arquivo>`, `XBERENAME`, `FREESPACE <drive>`, `FREEROOTSPACEDISABLE`, `TITLES`, `TITLEIMAGE`, `MAKE_FILE_TREE`.
 
 ## Testes
 ```

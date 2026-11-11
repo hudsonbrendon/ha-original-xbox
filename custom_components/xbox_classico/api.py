@@ -326,13 +326,14 @@ class XboxClient:
             return ftp.sendcmd(f"SITE {command}")
 
     def site_fire(self, command: str) -> str:
-        """SITE que derruba a conexão (REBOOT/SHUTDOWN/EXEC): resposta pode não chegar."""
+        """SITE de energia: o UnleashX executa e às vezes responde 502 (POWERCYCLE cai no fim do
+        tratador) ou derruba a conexão. Só falha de verdade se nem conectou."""
         try:
             return self.site(command)
-        except XboxError as err:
-            if isinstance(err, XboxOffline) or "timed out" in str(err) or "EOF" in str(err) or not str(err):
-                return "enviado"
+        except XboxOffline:
             raise
+        except XboxError as err:
+            return f"enviado ({err})"
 
     def drivestat(self) -> dict[str, dict[str, float]]:
         return parse_drivestat(self.site("DRIVESTAT"))
@@ -346,7 +347,15 @@ class XboxClient:
         return m.group(1) if m else None
 
     def execute(self, xbox_path: str) -> str:
-        return self.site_fire(f"EXEC {xbox_path}")
+        # EXEC responde 200/550 de verdade antes de trocar de XBE: aqui o erro importa
+        try:
+            return self.site(f"EXEC {xbox_path}")
+        except XboxOffline:
+            raise
+        except XboxError as err:
+            if "does not exist" in str(err) or "Failed" in str(err):
+                raise
+            return f"enviado ({err})"
 
     def listdir(self, path: str) -> list[Entry]:
         # LIST com caminho completo trava no UnleashX: sempre CWD + LIST
