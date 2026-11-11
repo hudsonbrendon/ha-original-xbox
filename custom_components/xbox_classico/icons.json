@@ -77,6 +77,9 @@
     "listar": {
       "service": "mdi:folder-open"
     },
+    "enviar_pasta": {
+      "service": "mdi:folder-upload"
+    },
     "xbmc_comando": {
       "service": "mdi:kodi"
     },

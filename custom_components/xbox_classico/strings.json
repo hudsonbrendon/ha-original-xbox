@@ -285,6 +285,24 @@
         }
       }
     },
+    "enviar_pasta": {
+      "name": "Upload folder (add game)",
+      "description": "Copy a folder from HA to the Xbox (default F:\\Games\\<folder name>) and refresh the library.",
+      "fields": {
+        "origem": {
+          "name": "Source folder",
+          "description": "Folder on HA containing default.xbe."
+        },
+        "destino": {
+          "name": "Destination",
+          "description": "Optional."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
     "baixar_arquivo": {
       "name": "Download file",
       "description": "Copy a file from the Xbox to HA.",

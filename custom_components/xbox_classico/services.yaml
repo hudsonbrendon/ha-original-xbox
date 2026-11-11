@@ -35,6 +35,21 @@ enviar_arquivo:
       selector:
         config_entry:
           integration: xbox_classico
+enviar_pasta:
+  fields:
+    origem:
+      required: true
+      selector:
+        text:
+    destino:
+      required: false
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
 baixar_arquivo:
   fields:
     origem:

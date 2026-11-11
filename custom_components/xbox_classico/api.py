@@ -503,6 +503,34 @@ class XboxClient:
                 )
         return out
 
+    def upload_tree(self, local_dir: str, remote_dir: str, progress=None) -> tuple[int, int]:
+        """Envia uma pasta local inteira (ex.: um jogo) para remote_dir. Retorna (arquivos, bytes)."""
+        import os
+
+        files = total = 0
+        base = to_ftp_path(remote_dir).rstrip("/")
+        with self.session() as ftp:
+            for root, dirs, names in os.walk(local_dir):
+                dirs.sort()
+                rel = os.path.relpath(root, local_dir)
+                target = base if rel == "." else f"{base}/{rel.replace(os.sep, '/')}"
+                cur = ""
+                for part in target.strip("/").split("/"):
+                    cur += "/" + part
+                    try:
+                        ftp.mkd(cur)
+                    except ftplib.error_perm:
+                        pass
+                for name in sorted(names):
+                    path = os.path.join(root, name)
+                    with open(path, "rb") as f:
+                        ftp.storbinary(f"STOR {target}/{name}", f, blocksize=65536)
+                    files += 1
+                    total += os.path.getsize(path)
+                    if progress:
+                        progress(files, total, f"{target}/{name}")
+        return files, total
+
     def download_tree(self, path: str, sink) -> int:
         """Baixa recursivamente chamando sink(caminho_relativo, bytes). Retorna nº de arquivos."""
         count = 0

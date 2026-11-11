@@ -138,6 +138,22 @@ def _register_services(hass: HomeAssistant) -> None:
         except (OSError, XboxError) as err:
             raise HomeAssistantError(f"envio falhou: {err}") from err
 
+    async def enviar_pasta(call: ServiceCall) -> ServiceResponse:
+        """Copia uma pasta do HA para o Xbox (ex.: um jogo para F:\\Games\\Nome) e atualiza a biblioteca."""
+        coordinator = _coordinator(hass, call)
+        origem = call.data["origem"].rstrip("/")
+        if not hass.config.is_allowed_path(origem) or not os.path.isdir(origem):
+            raise ServiceValidationError(f"{origem} não é uma pasta em allowlist_external_dirs")
+        destino = call.data.get("destino") or f"F:\\Games\\{os.path.basename(origem)}"
+        if coordinator.data and coordinator.data.get("activity") != "dashboard":
+            raise HomeAssistantError("o Xbox precisa estar no dashboard (UnleashX) para receber arquivos")
+        try:
+            files, total = await hass.async_add_executor_job(coordinator.client.upload_tree, origem, destino)
+        except (OSError, XboxError) as err:
+            raise HomeAssistantError(f"envio da pasta falhou: {err}") from err
+        coordinator.async_start_scan()
+        return {"destino": destino, "arquivos": files, "bytes": total}
+
     async def baixar_arquivo(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
         destino = call.data["destino"]
@@ -192,6 +208,13 @@ def _register_services(hass: HomeAssistant) -> None:
         "enviar_arquivo",
         enviar_arquivo,
         vol.Schema({**SCHEMA_BASE, vol.Required("origem"): cv.string, vol.Required("destino"): cv.string}),
+    )
+    reg(
+        DOMAIN,
+        "enviar_pasta",
+        enviar_pasta,
+        vol.Schema({**SCHEMA_BASE, vol.Required("origem"): cv.string, vol.Optional("destino"): cv.string}),
+        supports_response=SupportsResponse.OPTIONAL,
     )
     reg(
         DOMAIN,

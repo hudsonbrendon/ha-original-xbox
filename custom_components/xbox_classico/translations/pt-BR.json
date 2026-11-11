@@ -285,6 +285,24 @@
         }
       }
     },
+    "enviar_pasta": {
+      "name": "Enviar pasta (adicionar jogo)",
+      "description": "Copia uma pasta do HA para o Xbox, por padrão F:\\Games\\<nome da pasta>, e atualiza a biblioteca.",
+      "fields": {
+        "origem": {
+          "name": "Pasta de origem",
+          "description": "Pasta no HA com o default.xbe (ex.: /media/jogos/Meu Jogo)."
+        },
+        "destino": {
+          "name": "Destino",
+          "description": "Opcional. Padrão: F:\\Games\\<nome da pasta>."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Entrada do Xbox (opcional se só houver um)."
+        }
+      }
+    },
     "baixar_arquivo": {
       "name": "Baixar arquivo",
       "description": "Copia um arquivo do Xbox para o HA.",

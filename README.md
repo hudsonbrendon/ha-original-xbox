@@ -20,7 +20,7 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 | Binários | dashboard (FTP), rede (ping) e **travado** (app congelado: ping responde, porta 21 muda por 5 min depois do XBMC) |
 
 ### Serviços
-`xbox_classico.executar`, `comando_site` (resposta), `xbmc_comando` (resposta), `enviar_arquivo`, `baixar_arquivo`, `listar` (resposta), `backup_saves` (zip em `/config/backups/xbox_classico/`), `atualizar_biblioteca`.
+`xbox_classico.executar`, `comando_site` (resposta), `xbmc_comando` (resposta), `enviar_arquivo`, **`enviar_pasta`** (copia uma pasta do HA — ex.: um jogo seu ou um app homebrew — para `F:\Games\<nome>` e atualiza a biblioteca), `baixar_arquivo`, `listar` (resposta), `backup_saves` (zip em `/config/backups/xbox_classico/`), `atualizar_biblioteca`.
 
 ## Requisitos
 - FTP do dashboard ligado (UnleashX: `xbox`/`xbox` por padrão).

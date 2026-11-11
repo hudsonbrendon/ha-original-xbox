@@ -45,6 +45,9 @@ SVC = {
   "enviar_arquivo": (("Enviar arquivo", "Upload file"), ("Envia um arquivo do HA para o Xbox (ROMs, skins, configs).", "Upload a file from HA to the Xbox."),
                {"origem": ("Origem", "Source", "Caminho no HA (em allowlist_external_dirs).", "Path on HA."),
                 "destino": ("Destino", "Destination", "Caminho no Xbox; termine com \\ para manter o nome.", "Path on the Xbox.")}),
+  "enviar_pasta": (("Enviar pasta (adicionar jogo)", "Upload folder (add game)"), ("Copia uma pasta do HA para o Xbox, por padrão F:\\Games\\<nome da pasta>, e atualiza a biblioteca.", "Copy a folder from HA to the Xbox (default F:\\Games\\<folder name>) and refresh the library."),
+               {"origem": ("Pasta de origem", "Source folder", "Pasta no HA com o default.xbe (ex.: /media/jogos/Meu Jogo).", "Folder on HA containing default.xbe."),
+                "destino": ("Destino", "Destination", "Opcional. Padrão: F:\\Games\\<nome da pasta>.", "Optional.")}),
   "baixar_arquivo": (("Baixar arquivo", "Download file"), ("Copia um arquivo do Xbox para o HA.", "Copy a file from the Xbox to HA."),
                {"origem": ("Origem", "Source", "Caminho no Xbox (ex.: C:\\Config.xml).", "Path on the Xbox."),
                 "destino": ("Destino", "Destination", "Caminho no HA (em allowlist_external_dirs).", "Path on HA.")}),
@@ -87,7 +90,7 @@ ICONS = {"button": {"desligar": "mdi:power", "abrir_bandeja": "mdi:eject", "fech
     "autolaunch_audiocd": "mdi:album", "autolaunch_data": "mdi:disc", "newsfeed": "mdi:newspaper", "widescreen": "mdi:monitor",
     "use_1080i": "mdi:television", "fahrenheit": "mdi:thermometer"}}
 SVC_ICONS = {"executar": "mdi:play", "comando_site": "mdi:console", "enviar_arquivo": "mdi:upload", "baixar_arquivo": "mdi:download",
-  "listar": "mdi:folder-open", "xbmc_comando": "mdi:kodi", "backup_saves": "mdi:content-save-all", "atualizar_biblioteca": "mdi:bookshelf"}
+  "listar": "mdi:folder-open", "enviar_pasta": "mdi:folder-upload", "xbmc_comando": "mdi:kodi", "backup_saves": "mdi:content-save-all", "atualizar_biblioteca": "mdi:bookshelf"}
 
 def build(i, lang):
     out = json.loads(json.dumps(CFG[lang]))
@@ -112,7 +115,7 @@ for s, (_, _, fields) in SVC.items():
     lines.append(f"{s}:")
     lines.append("  fields:")
     for k in fields:
-        req = "false" if k == "parametro" else "true"
+        req = "false" if k == "parametro" or (s == "enviar_pasta" and k == "destino") else "true"
         lines += [f"    {k}:", f"      required: {req}", "      selector:", "        text:"]
     lines += ["    config_entry_id:", "      required: false", "      selector:", "        config_entry:", "          integration: xbox_classico"]
 (ROOT / "services.yaml").write_text("\n".join(lines) + "\n")
