@@ -171,3 +171,9 @@ def test_script_output_and_source():
     src = api.XBMC_SCRIPT
     compile(src.replace("\r\n", "\n"), "ha_info.py", "exec")  # sintaxe válida (sem f-strings)
     assert "E:\\\\TDATA\\\\ha_xbox_classico\\\\ha_info.txt" in src and f"v{api.SCRIPT_VERSION} " in src
+
+
+def test_fatx_names():
+    assert api.fatx_ok("default.xbe") and api.fatx_ok("x" * 42)
+    assert not api.fatx_ok("Alone in the Dark - New Nightmare D1 (E).txt")  # 44
+    assert not api.fatx_ok("a:b.txt") and not api.fatx_ok("é.txt") and not api.fatx_ok("")

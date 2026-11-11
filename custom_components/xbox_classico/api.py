@@ -70,6 +70,15 @@ def offline_activity(
     return "desligado", None
 
 
+FATX_MAX_NAME = 42
+_FATX_BAD = re.compile(r'[<>:"|*?\\/]|[^\x20-\x7e]')
+
+
+def fatx_ok(name: str) -> bool:
+    """O FATX do Xbox aceita nomes de até 42 caracteres ASCII imprimíveis, sem <>:"|*?\\/."""
+    return 0 < len(name) <= FATX_MAX_NAME and not _FATX_BAD.search(name)
+
+
 def app_from_banner(banner: str) -> str:
     low = banner.lower()
     if "unleashx" in low:
@@ -503,14 +512,20 @@ class XboxClient:
                 )
         return out
 
-    def upload_tree(self, local_dir: str, remote_dir: str, progress=None) -> tuple[int, int]:
-        """Envia uma pasta local inteira (ex.: um jogo) para remote_dir. Retorna (arquivos, bytes)."""
+    def upload_tree(self, local_dir: str, remote_dir: str, progress=None) -> tuple[int, int, list[str]]:
+        """Envia uma pasta local inteira (ex.: um jogo) para remote_dir.
+
+        Nomes que o FATX não aceita são pulados. Retorna (arquivos, bytes, pulados)."""
         import os
 
         files = total = 0
+        skipped: list[str] = []
         base = to_ftp_path(remote_dir).rstrip("/")
         with self.session() as ftp:
             for root, dirs, names in os.walk(local_dir):
+                for d in [d for d in dirs if not fatx_ok(d)]:
+                    skipped.append(os.path.relpath(os.path.join(root, d), local_dir) + "/")
+                    dirs.remove(d)
                 dirs.sort()
                 rel = os.path.relpath(root, local_dir)
                 target = base if rel == "." else f"{base}/{rel.replace(os.sep, '/')}"
@@ -523,13 +538,16 @@ class XboxClient:
                         pass
                 for name in sorted(names):
                     path = os.path.join(root, name)
+                    if not fatx_ok(name):
+                        skipped.append(os.path.relpath(path, local_dir))
+                        continue
                     with open(path, "rb") as f:
                         ftp.storbinary(f"STOR {target}/{name}", f, blocksize=65536)
                     files += 1
                     total += os.path.getsize(path)
                     if progress:
                         progress(files, total, f"{target}/{name}")
-        return files, total
+        return files, total, skipped
 
     # ------------------------------------------------------------ telemetria do XBMC sem HTTP
 

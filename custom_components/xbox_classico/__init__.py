@@ -148,11 +148,11 @@ def _register_services(hass: HomeAssistant) -> None:
         if coordinator.data and coordinator.data.get("activity") != "dashboard":
             raise HomeAssistantError("o Xbox precisa estar no dashboard (UnleashX) para receber arquivos")
         try:
-            files, total = await hass.async_add_executor_job(coordinator.client.upload_tree, origem, destino)
+            files, total, skipped = await hass.async_add_executor_job(coordinator.client.upload_tree, origem, destino)
         except (OSError, XboxError) as err:
             raise HomeAssistantError(f"envio da pasta falhou: {err}") from err
         coordinator.async_start_scan()
-        return {"destino": destino, "arquivos": files, "bytes": total}
+        return {"destino": destino, "arquivos": files, "bytes": total, "ignorados": skipped}
 
     async def baixar_arquivo(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
