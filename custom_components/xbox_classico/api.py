@@ -545,18 +545,18 @@ class XboxClient:
         self.write(SCRIPT_PATH, XBMC_SCRIPT.encode("ascii"))
         return True
 
-    def run_xbmc_script(self, full: bool = False, wait: float = 25.0) -> dict:
+    def run_xbmc_script(self, full: bool = False, wait: float | None = None) -> dict:
         """SITE RunScript no FTP do XBMC e espera a saída com o mesmo nonce."""
         import secrets
         import time
 
         nonce = secrets.token_hex(4)
         self.site(f"RunScript({SCRIPT_PATH},{nonce},{'full' if full else 'fast'})")
-        deadline = time.monotonic() + wait
+        deadline = time.monotonic() + (wait or (90.0 if full else 25.0))
         while time.monotonic() < deadline:
             time.sleep(1.5)
             try:
-                data = parse_script_output(self.read(SCRIPT_OUT).decode("latin-1"))
+                data = parse_script_output(self.read(SCRIPT_OUT).decode("utf-8", "replace"))
             except XboxError:
                 continue
             if data["nonce"] == nonce:
@@ -713,11 +713,11 @@ class XbmcClient:
 SCRIPT_DIR = "E:\\TDATA\\ha_xbox_classico"
 SCRIPT_PATH = SCRIPT_DIR + "\\ha_info.py"
 SCRIPT_OUT = SCRIPT_DIR + "\\ha_info.txt"
-SCRIPT_VERSION = "1"
+SCRIPT_VERSION = "3"
 
 XBMC_SCRIPT = (
     "# ha_xbox_classico v" + SCRIPT_VERSION + " - telemetria para o Home Assistant (Python 2 do XBMC)\r\n"
-    "import sys, time, xbmc\r\n"
+    "import sys, time, xbmc, xbmcgui\r\n"
     "nonce = len(sys.argv) > 1 and sys.argv[1] or ''\r\n"
     "full = len(sys.argv) > 2 and sys.argv[2] == 'full'\r\n"
     "busy = xbmc.getLocalizedString(503)\r\n"
@@ -734,6 +734,8 @@ XBMC_SCRIPT = (
     "           'system.cpufrequency']\r\n"
     "out = open('" + SCRIPT_OUT.replace("\\", "\\\\") + "', 'w')\r\n"
     "out.write('nonce=%s\\n' % nonce)\r\n"
+    "out.write('window.id=%d\\n' % xbmcgui.getCurrentWindowId())\r\n"
+    "out.write('player.paused=%d\\n' % xbmc.getCondVisibility('Player.Paused'))\r\n"
     "for l in fast: out.write('%s=%s\\n' % (l, get(l, l == 'system.hddtemperature')))\r\n"
     "if full:\r\n"
     "    for l in console: out.write('%s=%s\\n' % (l, get(l, True)))\r\n"
@@ -757,10 +759,21 @@ SCRIPT_FIELDS = {
 }
 
 
+# ids de janela do XBMC (xbmcgui.getCurrentWindowId)
+XBMC_WINDOWS = {
+    10000: "Início", 10001: "Programas", 10002: "Imagens", 10003: "Arquivos", 10004: "Configurações",
+    10005: "Música", 10006: "Vídeos", 10007: "Informações do sistema", 10024: "Vídeos (arquivos)",
+    10025: "Vídeos (biblioteca)", 10500: "Lista de reprodução", 10501: "Música (arquivos)",
+    10502: "Música (biblioteca)", 12005: "Vídeo em tela cheia", 12006: "Visualização", 12007: "Proteção de tela",
+}
+
+
 def parse_script_output(text: str) -> dict:
     """Saída do ha_info.py -> {'nonce':..., campo: valor}; vazios e 'ocupado' viram None."""
     raw = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
     out: dict = {"nonce": raw.get("nonce", "")}
+    wid = raw.get("window.id", "").strip()
+    window = XBMC_WINDOWS.get(int(wid), f"Janela {wid}") if wid.isdigit() else None
     for label, (key, conv) in SCRIPT_FIELDS.items():
         value = raw.get(label, "").strip()
         if not value or value.lower() in ("busy", "ocupado", "unknown", "desconhecido"):
@@ -770,12 +783,15 @@ def parse_script_output(text: str) -> dict:
             out[key] = conv(value)
         except ValueError:
             out[key] = None
+    if not out.get("window"):
+        out["window"] = window
     if raw.get("player.title"):
         out["playing"] = {
             "Title": raw["player.title"].strip(),
             "Artist": raw.get("musicplayer.artist", "").strip(),
             "Time": raw.get("player.time", "").strip(),
             "Duration": raw.get("player.duration", "").strip(),
+            "PlayStatus": "Paused" if raw.get("player.paused", "0").strip() == "1" else "Playing",
         }
     else:
         out["playing"] = None

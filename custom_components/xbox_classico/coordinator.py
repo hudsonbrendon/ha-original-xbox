@@ -216,7 +216,8 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             LOGGER.debug("telemetria por script falhou: %s", err)
             return
         self._xbmc_system = {
-            k: info.get(k) for k in ("gpu_temp", "cpu_temp", "hdd_temp", "fan", "free_memory", "build", "window")
+            k: info.get(k)
+            for k in ("gpu_temp", "cpu_temp", "hdd_temp", "fan", "free_memory", "build", "window", "playing")
         }
         console = {k: info[k] for k in ("xbox_version", "bios", "kernel", "produced", "cpu_frequency") if info.get(k)}
         if console and console != self.console_info:
@@ -339,6 +340,29 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.quiet()
         else:
             raise XboxError("comando indisponível: o Xbox não está no dashboard nem no XBMC")
+
+    # comando -> (HTTP API, parâmetro?) | built-in pelo SITE do FTP do XBMC
+    _MEDIA = {
+        "pause": ("Pause", "PlayerControl(Play)"),
+        "stop": ("Stop", "PlayerControl(Stop)"),
+        "next": ("PlayNext", "PlayerControl(Next)"),
+        "previous": ("PlayPrev", "PlayerControl(Previous)"),
+        "mute": ("Mute", "Mute"),
+        "volume": ("SetVolume", "SetVolume({})"),
+        "seek": ("SeekPercentage", None),
+    }
+
+    async def async_media(self, action: str, value: int | None = None) -> None:
+        """Controle de mídia no XBMC: HTTP API se houver, senão SITE do FTP (XBMC4Gamers)."""
+        if (self.data or {}).get("activity") != ACT_XBMC:
+            raise XboxError("o XBMC não está aberto")
+        http, site = self._MEDIA[action]
+        if self.xbmc_status is not None:
+            await self.async_xbmc(http, None if value is None else str(value))
+            return
+        if site is None:
+            raise XboxError("sem o servidor web do XBMC não dá para pular para uma posição")
+        await self.async_site(site.format(value))
 
     async def async_xbmc(self, command: str, parameter: str | None = None) -> str:
         if (self.data or {}).get("activity") != ACT_XBMC:

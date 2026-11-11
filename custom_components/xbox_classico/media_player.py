@@ -52,11 +52,17 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
 
     @property
     def supported_features(self) -> MediaPlayerEntityFeature:
-        return self.BASE | self.XBMC if self._xbmc is not None else self.BASE
+        if self.data.get("xbmc") is not None:
+            return self.BASE | self.XBMC
+        if self._xbmc is not None:  # XBMC sem HTTP: controles pelo FTP, sem seek nem volume lido
+            return self.BASE | (self.XBMC & ~MediaPlayerEntityFeature.SEEK)
+        return self.BASE
 
     @property
     def _xbmc(self) -> dict | None:
-        return self.data.get("xbmc") if self.data.get("activity") == ACT_XBMC else None
+        if self.data.get("activity") != ACT_XBMC:
+            return None
+        return self.data.get("xbmc") or self.data.get("telemetria") or ({} if self.data.get("online") else None)
 
     @property
     def _playing(self) -> dict:
@@ -170,31 +176,31 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
 
     async def async_media_play(self) -> None:
         if self._playing.get("PlayStatus", "").lower() == "paused":
-            await self._run(self.coordinator.async_xbmc("Pause"))
+            await self._run(self.coordinator.async_media("pause"))
 
     async def async_media_pause(self) -> None:
         if self._playing.get("PlayStatus", "").lower() != "paused":
-            await self._run(self.coordinator.async_xbmc("Pause"))
+            await self._run(self.coordinator.async_media("pause"))
 
     async def async_media_stop(self) -> None:
-        await self._run(self.coordinator.async_xbmc("Stop"))
+        await self._run(self.coordinator.async_media("stop"))
 
     async def async_media_next_track(self) -> None:
-        await self._run(self.coordinator.async_xbmc("PlayNext"))
+        await self._run(self.coordinator.async_media("next"))
 
     async def async_media_previous_track(self) -> None:
-        await self._run(self.coordinator.async_xbmc("PlayPrev"))
+        await self._run(self.coordinator.async_media("previous"))
 
     async def async_set_volume_level(self, volume: float) -> None:
-        await self._run(self.coordinator.async_xbmc("SetVolume", str(round(volume * 100))))
+        await self._run(self.coordinator.async_media("volume", round(volume * 100)))
 
     async def async_mute_volume(self, mute: bool) -> None:
-        await self._run(self.coordinator.async_xbmc("Mute"))
+        await self._run(self.coordinator.async_media("mute"))
 
     async def async_media_seek(self, position: float) -> None:
         duration = self.media_duration
         if duration:
-            await self._run(self.coordinator.async_xbmc("SeekPercentage", str(round(100 * position / duration))))
+            await self._run(self.coordinator.async_media("seek", round(100 * position / duration)))
 
     async def async_turn_off(self) -> None:  # noqa: F811 - funciona do UnleashX e do XBMC
         await self._run(self.coordinator.async_power("SHUTDOWN"))
