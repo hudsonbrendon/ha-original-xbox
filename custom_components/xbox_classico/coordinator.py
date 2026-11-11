@@ -203,7 +203,8 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.xbmc_status = {**status, **self._xbmc_system}
             except XboxError as err:
                 LOGGER.debug("HTTP do XBMC indisponível (webserver ligado?): %s", err)
-                if now - self._xbmc_system_at > XBMC_SYSTEM_SECONDS:
+                every = SCAN_INTERVAL_SECONDS if self._xbmc_system.get("playing") else XBMC_SYSTEM_SECONDS
+                if now - self._xbmc_system_at >= every - 1:
                     await self._xbmc_script_telemetry(now)
         return self._data(True, True, activity, probe)
 
@@ -363,6 +364,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if site is None:
             raise XboxError("sem o servidor web do XBMC não dá para pular para uma posição")
         await self.async_site(site.format(value))
+        self._xbmc_system_at = 0.0  # próxima consulta já relê o player
 
     async def async_xbmc(self, command: str, parameter: str | None = None) -> str:
         if (self.data or {}).get("activity") != ACT_XBMC:

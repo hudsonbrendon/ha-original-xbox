@@ -713,7 +713,7 @@ class XbmcClient:
 SCRIPT_DIR = "E:\\TDATA\\ha_xbox_classico"
 SCRIPT_PATH = SCRIPT_DIR + "\\ha_info.py"
 SCRIPT_OUT = SCRIPT_DIR + "\\ha_info.txt"
-SCRIPT_VERSION = "3"
+SCRIPT_VERSION = "4"
 
 XBMC_SCRIPT = (
     "# ha_xbox_classico v" + SCRIPT_VERSION + " - telemetria para o Home Assistant (Python 2 do XBMC)\r\n"
@@ -736,6 +736,12 @@ XBMC_SCRIPT = (
     "out.write('nonce=%s\\n' % nonce)\r\n"
     "out.write('window.id=%d\\n' % xbmcgui.getCurrentWindowId())\r\n"
     "out.write('player.paused=%d\\n' % xbmc.getCondVisibility('Player.Paused'))\r\n"
+    "p = xbmc.Player()\r\n"
+    "out.write('player.playing=%d\\n' % p.isPlaying())\r\n"
+    "try:\r\n"
+    "    out.write('player.file=%s\\nplayer.time_s=%d\\nplayer.total_s=%d\\n' % (p.getPlayingFile(), p.getTime(), p.getTotalTime()))\r\n"
+    "except:\r\n"
+    "    pass\r\n"
     "for l in fast: out.write('%s=%s\\n' % (l, get(l, l == 'system.hddtemperature')))\r\n"
     "if full:\r\n"
     "    for l in console: out.write('%s=%s\\n' % (l, get(l, True)))\r\n"
@@ -768,6 +774,14 @@ XBMC_WINDOWS = {
 }
 
 
+def _hms(seconds: str | None) -> str:
+    """'95' -> '01:35'; vazio/inválido -> ''."""
+    if not seconds or not seconds.strip().isdigit():
+        return ""
+    s = int(seconds)
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60:02d}:{s % 60:02d}"
+
+
 def parse_script_output(text: str) -> dict:
     """Saída do ha_info.py -> {'nonce':..., campo: valor}; vazios e 'ocupado' viram None."""
     raw = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
@@ -785,12 +799,14 @@ def parse_script_output(text: str) -> dict:
             out[key] = None
     if not out.get("window"):
         out["window"] = window
-    if raw.get("player.title"):
+    if raw.get("player.playing", "").strip() == "1" or raw.get("player.title", "").strip():
+        file = raw.get("player.file", "").strip()
         out["playing"] = {
-            "Title": raw["player.title"].strip(),
+            "Title": raw.get("player.title", "").strip() or file.replace("\\", "/").rsplit("/", 1)[-1],
+            "Filename": file,
             "Artist": raw.get("musicplayer.artist", "").strip(),
-            "Time": raw.get("player.time", "").strip(),
-            "Duration": raw.get("player.duration", "").strip(),
+            "Time": _hms(raw.get("player.time_s")) or raw.get("player.time", "").strip(),
+            "Duration": _hms(raw.get("player.total_s")) or raw.get("player.duration", "").strip(),
             "PlayStatus": "Paused" if raw.get("player.paused", "0").strip() == "1" else "Playing",
         }
     else:

@@ -159,7 +159,11 @@ def test_script_output_and_source():
     )
     raw = "nonce=x\r\nwindow.id=10001\r\nsystem.cputemperature=58\u00b0C\r\nsystem.currentwindow=\r\n".encode()
     w = api.parse_script_output(raw.decode("utf-8"))
-    assert w["cpu_temp"] == 58.0 and w["window"] == "Programas"
+    assert w["cpu_temp"] == 58.0 and w["window"] == "Programas" and w["playing"] is None
+    t = "nonce=y\nplayer.playing=1\nplayer.paused=1\nplayer.title=\nplayer.file=F:\\Music\\teste-ha.wav\nplayer.time_s=5\nplayer.total_s=90\n"
+    p = api.parse_script_output(t)["playing"]
+    assert p["Title"] == "teste-ha.wav" and p["Time"] == "00:05" and p["Duration"] == "01:30" and p["PlayStatus"] == "Paused"
+    assert api.parse_duration(p["Duration"]) == 90
     d = api.parse_script_output(text)
     assert d["nonce"] == "ab12cd34" and d["cpu_temp"] == 56.0 and d["gpu_temp"] == 41.0 and d["fan"] == 40.0
     assert d["hdd_temp"] is None and d["free_memory"] == 33.0 and d["window"] == "Programas"
