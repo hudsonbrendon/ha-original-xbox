@@ -9,6 +9,7 @@ import time
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -85,6 +86,8 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.xbmc_status: dict | None = None
         self._xbmc_system: dict = {}
         self._xbmc_system_at = 0.0
+        self._script_ok = False
+        self.console_info: dict = {}  # versão do Xbox, BIOS, kernel (do script no XBMC)
         self._quiet_until = 0.0
         self._silent_since: float | None = None
         self.library: list[dict] = []
@@ -118,6 +121,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.current = data.get("current")
         self.system = data.get("system")
         self.library_at = data.get("library_at", 0.0)
+        self.console_info = data.get("console_info", {})
 
     def _save(self) -> None:
         self._store.async_delay_save(
@@ -128,6 +132,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "current": self.current,
                 "system": self.system,
                 "library_at": self.library_at,
+                "console_info": self.console_info,
             },
             5,
         )
@@ -194,10 +199,42 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if with_system:
                     self._xbmc_system = {k: status.get(k) for k in ("gpu_temp", "cpu_temp", "fan", "free_memory", "build")}
                     self._xbmc_system_at = now
+                self._xbmc_system = {**self._xbmc_system, "window": status.get("window")}
                 self.xbmc_status = {**status, **self._xbmc_system}
             except XboxError as err:
                 LOGGER.debug("HTTP do XBMC indisponível (webserver ligado?): %s", err)
+                if now - self._xbmc_system_at > XBMC_SYSTEM_SECONDS:
+                    await self._xbmc_script_telemetry(now)
         return self._data(True, True, activity, probe)
+
+    async def _xbmc_script_telemetry(self, now: float) -> None:
+        """XBMC sem servidor web (XBMC4Gamers): telemetria pelo ha_info.py via SITE RunScript."""
+        self._xbmc_system_at = now
+        try:
+            info = await self.hass.async_add_executor_job(self.client.run_xbmc_script, not self.console_info)
+        except XboxError as err:
+            LOGGER.debug("telemetria por script falhou: %s", err)
+            return
+        self._xbmc_system = {
+            k: info.get(k) for k in ("gpu_temp", "cpu_temp", "hdd_temp", "fan", "free_memory", "build", "window")
+        }
+        console = {k: info[k] for k in ("xbox_version", "bios", "kernel", "produced", "cpu_frequency") if info.get(k)}
+        if console and console != self.console_info:
+            self.console_info = {**self.console_info, **console}
+            self._save()
+            self._update_device()
+
+    def _update_device(self) -> None:
+        reg = dr.async_get(self.hass)
+        device = reg.async_get_device(identifiers={(DOMAIN, self.config_entry.unique_id)})
+        if device is None or not self.console_info:
+            return
+        info = self.console_info
+        reg.async_update_device(
+            device.id,
+            model=f"Xbox {info['xbox_version']}" if info.get("xbox_version") else device.model,
+            hw_version=info.get("bios") or device.hw_version,
+        )
 
     def _data(self, online: bool, ping: bool, activity: str, probe: dict | None) -> dict[str, Any]:
         return {
@@ -208,10 +245,17 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "current": self.current,
             "last": self.last,
             "xbmc": self.xbmc_status if activity == ACT_XBMC else None,
+            "telemetria": self._xbmc_system if activity == ACT_XBMC else None,
             "at": dt_util.utcnow(),
         }
 
     async def _refresh_dashboard_extras(self, now: float) -> None:
+        if not self._script_ok:
+            try:
+                await self.hass.async_add_executor_job(self.client.ensure_script)
+                self._script_ok = True
+            except XboxError as err:
+                LOGGER.debug("não instalou o script de telemetria: %s", err)
         if now - self._drives_at > DRIVES_REFRESH_SECONDS:
             try:
                 self.drives = await self.hass.async_add_executor_job(self.client.drivestat)

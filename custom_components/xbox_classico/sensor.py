@@ -142,6 +142,13 @@ XBMC_SENSORS = [
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     XbmcSensorDescription(
+        key="temperatura_hd",
+        field="hdd_temp",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    XbmcSensorDescription(
         key="ventoinha",
         field="fan",
         state_class=SensorStateClass.MEASUREMENT,
@@ -230,7 +237,7 @@ class XboxDriveSensor(XboxEntity, SensorEntity):
 
 
 class XbmcSensor(XboxXbmcEntity, SensorEntity):
-    """Telemetria que só o XBMC expõe (HTTP API). Mantém o último valor com o XBMC fechado."""
+    """Telemetria que só o XBMC expõe (HTTP API, ou script no XBMC4Gamers). Mantém o último valor."""
 
     entity_description: XbmcSensorDescription
 
@@ -241,11 +248,15 @@ class XbmcSensor(XboxXbmcEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        return XboxEntity.available.fget(self) and (self.xbmc.get(self.entity_description.field) is not None or self._last is not None)
+        return XboxEntity.available.fget(self) and (self._telemetry.get(self.entity_description.field) is not None or self._last is not None)
+
+    @property
+    def _telemetry(self) -> dict:
+        return self.data.get("telemetria") or {}
 
     @property
     def native_value(self) -> Any:
-        value = self.xbmc.get(self.entity_description.field)
+        value = self._telemetry.get(self.entity_description.field)
         if value is not None:
             self._last = value
         return self._last

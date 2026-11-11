@@ -21,7 +21,10 @@ class XboxEntity(CoordinatorEntity[XboxCoordinator]):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.unique_id)},
             manufacturer="Microsoft",
-            model="Xbox (original)",
+            model=f"Xbox {coordinator.console_info['xbox_version']}"
+            if coordinator.console_info.get("xbox_version")
+            else "Xbox (original)",
+            hw_version=coordinator.console_info.get("bios"),
             name=entry.title,
             sw_version=system.replace("UNIX emulated by ", "") or None,
         )

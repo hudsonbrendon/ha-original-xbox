@@ -531,6 +531,38 @@ class XboxClient:
                         progress(files, total, f"{target}/{name}")
         return files, total
 
+    # ------------------------------------------------------------ telemetria do XBMC sem HTTP
+
+    def ensure_script(self) -> bool:
+        """Instala/atualiza o ha_info.py (só pelo UnleashX: o FTP do XBMC recusa caminho absoluto)."""
+        try:
+            current = self.read(SCRIPT_PATH, 120).decode("latin-1")
+        except XboxError:
+            current = ""
+        if f"v{SCRIPT_VERSION} " in current:
+            return False
+        self.mkdirs(SCRIPT_DIR)
+        self.write(SCRIPT_PATH, XBMC_SCRIPT.encode("ascii"))
+        return True
+
+    def run_xbmc_script(self, full: bool = False, wait: float = 25.0) -> dict:
+        """SITE RunScript no FTP do XBMC e espera a saída com o mesmo nonce."""
+        import secrets
+        import time
+
+        nonce = secrets.token_hex(4)
+        self.site(f"RunScript({SCRIPT_PATH},{nonce},{'full' if full else 'fast'})")
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline:
+            time.sleep(1.5)
+            try:
+                data = parse_script_output(self.read(SCRIPT_OUT).decode("latin-1"))
+            except XboxError:
+                continue
+            if data["nonce"] == nonce:
+                return data
+        raise XboxError("o script de telemetria não respondeu (XBMC ocupado?)")
+
     def download_tree(self, path: str, sink) -> int:
         """Baixa recursivamente chamando sink(caminho_relativo, bytes). Retorna nº de arquivos."""
         count = 0
@@ -672,3 +704,79 @@ class XbmcClient:
 
     def builtin(self, action: str) -> str:
         return " ".join(self.lines("ExecBuiltIn", action))
+
+
+# ---------------------------------------------------------------- telemetria do XBMC sem HTTP API
+
+# O XBMC4Gamers vem sem servidor web; o FTP dele roda built-ins (SITE RunScript), então a
+# telemetria sai de um script Python 2 deixado no disco. Fica em E:\TDATA (gravável pelo UnleashX).
+SCRIPT_DIR = "E:\\TDATA\\ha_xbox_classico"
+SCRIPT_PATH = SCRIPT_DIR + "\\ha_info.py"
+SCRIPT_OUT = SCRIPT_DIR + "\\ha_info.txt"
+SCRIPT_VERSION = "1"
+
+XBMC_SCRIPT = (
+    "# ha_xbox_classico v" + SCRIPT_VERSION + " - telemetria para o Home Assistant (Python 2 do XBMC)\r\n"
+    "import sys, time, xbmc\r\n"
+    "nonce = len(sys.argv) > 1 and sys.argv[1] or ''\r\n"
+    "full = len(sys.argv) > 2 and sys.argv[2] == 'full'\r\n"
+    "busy = xbmc.getLocalizedString(503)\r\n"
+    "def get(label, wait):\r\n"
+    "    v = xbmc.getInfoLabel(label)\r\n"
+    "    n = 0\r\n"
+    "    while wait and v == busy and n < 30:\r\n"
+    "        time.sleep(0.5); v = xbmc.getInfoLabel(label); n += 1\r\n"
+    "    return v\r\n"
+    "fast = ['system.cputemperature', 'system.gputemperature', 'system.fanspeed', 'system.hddtemperature',\r\n"
+    "        'system.freememory', 'system.currentwindow', 'system.uptime', 'system.buildversion',\r\n"
+    "        'player.title', 'player.time', 'player.duration', 'musicplayer.artist']\r\n"
+    "console = ['system.xboxversion', 'system.bios', 'system.kernelversion', 'system.xboxproduceinfo',\r\n"
+    "           'system.cpufrequency']\r\n"
+    "out = open('" + SCRIPT_OUT.replace("\\", "\\\\") + "', 'w')\r\n"
+    "out.write('nonce=%s\\n' % nonce)\r\n"
+    "for l in fast: out.write('%s=%s\\n' % (l, get(l, l == 'system.hddtemperature')))\r\n"
+    "if full:\r\n"
+    "    for l in console: out.write('%s=%s\\n' % (l, get(l, True)))\r\n"
+    "out.close()\r\n"
+)
+
+SCRIPT_FIELDS = {
+    "system.cputemperature": ("cpu_temp", parse_temp),
+    "system.gputemperature": ("gpu_temp", parse_temp),
+    "system.hddtemperature": ("hdd_temp", parse_temp),
+    "system.fanspeed": ("fan", parse_first_number),
+    "system.freememory": ("free_memory", parse_first_number),
+    "system.currentwindow": ("window", str),
+    "system.uptime": ("uptime", str),
+    "system.buildversion": ("build", str),
+    "system.xboxversion": ("xbox_version", str),
+    "system.bios": ("bios", str),
+    "system.kernelversion": ("kernel", str),
+    "system.xboxproduceinfo": ("produced", str),
+    "system.cpufrequency": ("cpu_frequency", str),
+}
+
+
+def parse_script_output(text: str) -> dict:
+    """Saída do ha_info.py -> {'nonce':..., campo: valor}; vazios e 'ocupado' viram None."""
+    raw = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
+    out: dict = {"nonce": raw.get("nonce", "")}
+    for label, (key, conv) in SCRIPT_FIELDS.items():
+        value = raw.get(label, "").strip()
+        if not value or value.lower() in ("busy", "ocupado", "unknown", "desconhecido"):
+            out[key] = None
+            continue
+        try:
+            out[key] = conv(value)
+        except ValueError:
+            out[key] = None
+    if raw.get("player.title"):
+        out["playing"] = {
+            "Title": raw["player.title"].strip(),
+            "Artist": raw.get("musicplayer.artist", "").strip(),
+            "Time": raw.get("player.time", "").strip(),
+            "Duration": raw.get("player.duration", "").strip(),
+        }
+    else:
+        out["playing"] = None
+    return out

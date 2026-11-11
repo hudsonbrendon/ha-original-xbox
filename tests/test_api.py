@@ -148,3 +148,19 @@ def test_offline_activity():
     assert f("xbmc", True, False, False, 1000, 2000) == ("desligado", None)
     assert f(None, False, False, True, None, 0) == ("jogo", None)
     assert f("dashboard", False, False, False, None, 0) == ("desligado", None)
+
+
+def test_script_output_and_source():
+    text = (
+        "nonce=ab12cd34\nsystem.cputemperature=56°C\nsystem.gputemperature=41°C\nsystem.fanspeed=40%\n"
+        "system.hddtemperature=Ocupado\nsystem.freememory=33MB\nsystem.currentwindow=Programas\n"
+        "system.uptime=14 Minutos\nsystem.buildversion=3.6-DEV-r33046\nplayer.title=\n"
+        "system.xboxversion=v1.6\nsystem.bios=Evox M8 Plus (1.6) \n"
+    )
+    d = api.parse_script_output(text)
+    assert d["nonce"] == "ab12cd34" and d["cpu_temp"] == 56.0 and d["gpu_temp"] == 41.0 and d["fan"] == 40.0
+    assert d["hdd_temp"] is None and d["free_memory"] == 33.0 and d["window"] == "Programas"
+    assert d["xbox_version"] == "v1.6" and d["bios"] == "Evox M8 Plus (1.6)" and d["playing"] is None
+    src = api.XBMC_SCRIPT
+    compile(src.replace("\r\n", "\n"), "ha_info.py", "exec")  # sintaxe válida (sem f-strings)
+    assert "E:\\\\TDATA\\\\ha_xbox_classico\\\\ha_info.txt" in src and f"v{api.SCRIPT_VERSION} " in src

@@ -23,6 +23,7 @@ ENT = {
     "jogos": ("Jogos", "Games"), "aplicativos": ("Aplicativos", "Apps"), "saves": ("Saves", "Saves"),
     "biblioteca_atualizada": ("Biblioteca atualizada", "Library updated"), "dashboard": ("Dashboard", "Dashboard"),
     "temperatura_gpu": ("Temperatura da GPU", "GPU temperature"), "temperatura_cpu": ("Temperatura da CPU", "CPU temperature"),
+    "temperatura_hd": ("Temperatura do HD", "Hard drive temperature"),
     "ventoinha": ("Ventoinha", "Fan speed"), "memoria_livre": ("Memória livre", "Free memory"),
     "tela_xbmc": ("Tela do XBMC", "XBMC window"), "versao_xbmc": ("Versão do XBMC", "XBMC version"),
     **{f"livre_{d}": (f"Livre {d.upper()}", f"Free {d.upper()}") for d in DRIVES},

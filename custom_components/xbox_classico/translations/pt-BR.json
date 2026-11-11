@@ -153,6 +153,9 @@
       "temperatura_cpu": {
         "name": "Temperatura da CPU"
       },
+      "temperatura_hd": {
+        "name": "Temperatura do HD"
+      },
       "ventoinha": {
         "name": "Ventoinha"
       },

@@ -153,6 +153,9 @@
       "temperatura_cpu": {
         "name": "CPU temperature"
       },
+      "temperatura_hd": {
+        "name": "Hard drive temperature"
+      },
       "ventoinha": {
         "name": "Fan speed"
       },
