@@ -1,0 +1,90 @@
+{
+  "entity": {
+    "button": {
+      "desligar": "mdi:power",
+      "abrir_bandeja": "mdi:eject",
+      "fechar_bandeja": "mdi:eject-outline",
+      "reiniciar_rede": "mdi:lan-pending",
+      "reiniciar_ftp": "mdi:folder-network",
+      "recarregar_dashboard": "mdi:view-dashboard",
+      "dashboard_microsoft": "mdi:microsoft-xbox",
+      "backup_saves": "mdi:content-save-all",
+      "atualizar_biblioteca": "mdi:bookshelf"
+    },
+    "image": {
+      "capa": "mdi:image-album"
+    },
+    "camera": {
+      "tela": "mdi:television-play"
+    },
+    "remote": {
+      "controle": "mdi:controller-classic"
+    },
+    "number": {
+      "screensaver_wait": "mdi:monitor-shimmer",
+      "auto_turn_off": "mdi:timer-power"
+    },
+    "select": {
+      "abrir_jogo": "mdi:gamepad-variant",
+      "abrir_aplicativo": "mdi:application"
+    },
+    "sensor": {
+      "atividade": "mdi:microsoft-xbox",
+      "jogo_atual": "mdi:gamepad-variant",
+      "ultimo_jogo": "mdi:history",
+      "jogos": "mdi:disc",
+      "aplicativos": "mdi:apps",
+      "saves": "mdi:content-save",
+      "dashboard": "mdi:view-dashboard",
+      "biblioteca_atualizada": "mdi:bookshelf",
+      "ventoinha": "mdi:fan",
+      "memoria_livre": "mdi:memory",
+      "tela_xbmc": "mdi:kodi",
+      "versao_xbmc": "mdi:kodi",
+      "livre_c": "mdi:harddisk",
+      "livre_e": "mdi:harddisk",
+      "livre_f": "mdi:harddisk",
+      "livre_g": "mdi:harddisk",
+      "livre_x": "mdi:harddisk",
+      "livre_y": "mdi:harddisk",
+      "livre_z": "mdi:harddisk"
+    },
+    "switch": {
+      "sntp": "mdi:clock-check",
+      "autolaunch_games": "mdi:disc-player",
+      "autolaunch_dvd": "mdi:movie-open",
+      "autolaunch_audiocd": "mdi:album",
+      "autolaunch_data": "mdi:disc",
+      "newsfeed": "mdi:newspaper",
+      "widescreen": "mdi:monitor",
+      "use_1080i": "mdi:television",
+      "fahrenheit": "mdi:thermometer"
+    }
+  },
+  "services": {
+    "executar": {
+      "service": "mdi:play"
+    },
+    "comando_site": {
+      "service": "mdi:console"
+    },
+    "enviar_arquivo": {
+      "service": "mdi:upload"
+    },
+    "baixar_arquivo": {
+      "service": "mdi:download"
+    },
+    "listar": {
+      "service": "mdi:folder-open"
+    },
+    "xbmc_comando": {
+      "service": "mdi:kodi"
+    },
+    "backup_saves": {
+      "service": "mdi:content-save-all"
+    },
+    "atualizar_biblioteca": {
+      "service": "mdi:bookshelf"
+    }
+  }
+}

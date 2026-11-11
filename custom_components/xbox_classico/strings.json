@@ -1,0 +1,358 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Classic Xbox",
+        "description": "Leave the Xbox on the dashboard (UnleashX) with FTP enabled.",
+        "data": {
+          "host": "IP address",
+          "username": "FTP user",
+          "password": "FTP password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "FTP did not answer. Is the Xbox on the dashboard?",
+      "invalid_auth": "FTP user or password rejected."
+    },
+    "abort": {
+      "already_configured": "This Xbox is already configured.",
+      "not_xbox": "Not a classic Xbox with a supported dashboard."
+    },
+    "flow_title": "Xbox ({host})"
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "dashboard": "Dashboard path"
+        },
+        "data_description": {
+          "dashboard": "XBE reloaded after settings change (default C:\\evoxdash.xbe)."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ftp": {
+        "name": "Dashboard"
+      },
+      "rede": {
+        "name": "Network"
+      }
+    },
+    "button": {
+      "reiniciar": {
+        "name": "Restart"
+      },
+      "desligar": {
+        "name": "Shut down"
+      },
+      "reinicio_completo": {
+        "name": "Power cycle"
+      },
+      "abrir_bandeja": {
+        "name": "Open tray"
+      },
+      "fechar_bandeja": {
+        "name": "Close tray"
+      },
+      "reiniciar_rede": {
+        "name": "Restart network"
+      },
+      "reiniciar_ftp": {
+        "name": "Restart FTP"
+      },
+      "recarregar_dashboard": {
+        "name": "Reload dashboard"
+      },
+      "dashboard_microsoft": {
+        "name": "Microsoft dashboard"
+      },
+      "backup_saves": {
+        "name": "Back up saves"
+      },
+      "atualizar_biblioteca": {
+        "name": "Refresh library"
+      }
+    },
+    "image": {
+      "capa": {
+        "name": "Cover"
+      }
+    },
+    "camera": {
+      "tela": {
+        "name": "Screen"
+      }
+    },
+    "remote": {
+      "controle": {
+        "name": "Controller"
+      }
+    },
+    "number": {
+      "screensaver_wait": {
+        "name": "Screen saver delay"
+      },
+      "auto_turn_off": {
+        "name": "Auto power off"
+      }
+    },
+    "select": {
+      "abrir_jogo": {
+        "name": "Launch game"
+      },
+      "abrir_aplicativo": {
+        "name": "Launch app"
+      }
+    },
+    "sensor": {
+      "atividade": {
+        "name": "Activity",
+        "state": {
+          "dashboard": "Dashboard",
+          "xbmc": "XBMC",
+          "avalaunch": "Avalaunch",
+          "evox": "EvolutionX",
+          "outro_app": "Other app",
+          "jogo": "In game",
+          "desligado": "Off"
+        }
+      },
+      "jogo_atual": {
+        "name": "Current game"
+      },
+      "ultimo_jogo": {
+        "name": "Last game"
+      },
+      "ultima_sessao": {
+        "name": "Last session"
+      },
+      "jogos": {
+        "name": "Games"
+      },
+      "aplicativos": {
+        "name": "Apps"
+      },
+      "saves": {
+        "name": "Saves"
+      },
+      "biblioteca_atualizada": {
+        "name": "Library updated"
+      },
+      "dashboard": {
+        "name": "Dashboard"
+      },
+      "temperatura_gpu": {
+        "name": "GPU temperature"
+      },
+      "temperatura_cpu": {
+        "name": "CPU temperature"
+      },
+      "ventoinha": {
+        "name": "Fan speed"
+      },
+      "memoria_livre": {
+        "name": "Free memory"
+      },
+      "tela_xbmc": {
+        "name": "XBMC window"
+      },
+      "versao_xbmc": {
+        "name": "XBMC version"
+      },
+      "livre_c": {
+        "name": "Free C"
+      },
+      "livre_e": {
+        "name": "Free E"
+      },
+      "livre_f": {
+        "name": "Free F"
+      },
+      "livre_g": {
+        "name": "Free G"
+      },
+      "livre_x": {
+        "name": "Free X"
+      },
+      "livre_y": {
+        "name": "Free Y"
+      },
+      "livre_z": {
+        "name": "Free Z"
+      },
+      "uso_c": {
+        "name": "Usage C"
+      },
+      "uso_e": {
+        "name": "Usage E"
+      },
+      "uso_f": {
+        "name": "Usage F"
+      },
+      "uso_g": {
+        "name": "Usage G"
+      },
+      "uso_x": {
+        "name": "Usage X"
+      },
+      "uso_y": {
+        "name": "Usage Y"
+      },
+      "uso_z": {
+        "name": "Usage Z"
+      }
+    },
+    "switch": {
+      "sntp": {
+        "name": "Sync clock"
+      },
+      "autolaunch_games": {
+        "name": "Auto-launch games"
+      },
+      "autolaunch_dvd": {
+        "name": "Auto-launch DVD"
+      },
+      "autolaunch_audiocd": {
+        "name": "Auto-launch audio CD"
+      },
+      "autolaunch_data": {
+        "name": "Auto-launch data disc"
+      },
+      "newsfeed": {
+        "name": "News feed"
+      },
+      "widescreen": {
+        "name": "Widescreen"
+      },
+      "use_1080i": {
+        "name": "1080i"
+      },
+      "fahrenheit": {
+        "name": "Fahrenheit"
+      }
+    }
+  },
+  "services": {
+    "executar": {
+      "name": "Launch XBE",
+      "description": "Launch a game/app by library name or path.",
+      "fields": {
+        "caminho": {
+          "name": "Path or name",
+          "description": "Game name or .xbe path."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "comando_site": {
+      "name": "SITE command",
+      "description": "Send a raw SITE command to UnleashX.",
+      "fields": {
+        "comando": {
+          "name": "Command",
+          "description": "E.g. DRIVESTAT"
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "enviar_arquivo": {
+      "name": "Upload file",
+      "description": "Upload a file from HA to the Xbox.",
+      "fields": {
+        "origem": {
+          "name": "Source",
+          "description": "Path on HA."
+        },
+        "destino": {
+          "name": "Destination",
+          "description": "Path on the Xbox."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "baixar_arquivo": {
+      "name": "Download file",
+      "description": "Copy a file from the Xbox to HA.",
+      "fields": {
+        "origem": {
+          "name": "Source",
+          "description": "Path on the Xbox."
+        },
+        "destino": {
+          "name": "Destination",
+          "description": "Path on HA."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "xbmc_comando": {
+      "name": "XBMC command",
+      "description": "Call the XBMC HTTP API.",
+      "fields": {
+        "comando": {
+          "name": "Command",
+          "description": "E.g. GetCurrentlyPlaying"
+        },
+        "parametro": {
+          "name": "Parameter",
+          "description": "Optional."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "listar": {
+      "name": "List folder",
+      "description": "List a folder on the Xbox.",
+      "fields": {
+        "caminho": {
+          "name": "Folder",
+          "description": "E.g. F:\\Games"
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "backup_saves": {
+      "name": "Back up saves",
+      "description": "Download E:\\UDATA to /config/backups/xbox_classico/.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    },
+    "atualizar_biblioteca": {
+      "name": "Refresh library",
+      "description": "Rescan games, apps and saves.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Xbox entry (optional with one console)."
+        }
+      }
+    }
+  }
+}

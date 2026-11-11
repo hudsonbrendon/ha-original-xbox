@@ -1,0 +1,92 @@
+executar:
+  fields:
+    caminho:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+comando_site:
+  fields:
+    comando:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+enviar_arquivo:
+  fields:
+    origem:
+      required: true
+      selector:
+        text:
+    destino:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+baixar_arquivo:
+  fields:
+    origem:
+      required: true
+      selector:
+        text:
+    destino:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+xbmc_comando:
+  fields:
+    comando:
+      required: true
+      selector:
+        text:
+    parametro:
+      required: false
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+listar:
+  fields:
+    caminho:
+      required: true
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+backup_saves:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
+atualizar_biblioteca:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: xbox_classico
