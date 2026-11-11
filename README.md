@@ -37,6 +37,10 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 ### Comandos SITE do UnleashX 0.37 (RE)
 `REBOOT`/`RESTART` (chamam `XLaunchNewImage(NULL)` e falham calados neste build), `SHUTDOWN`, `POWERCYCLE` (reinicia de fato; responde 502 depois de agir), `FTPRESET`, `FTPSTOP`, `NETRESET`, `TRAYOPEN`/`EJECT`, `TRAYCLOSE`, `DRIVESTAT`, `EXEC <xbe>`, `LAUNCH <xbe>`, `MD5 <arquivo>`, `XBERENAME`, `FREESPACE <drive>`, `FREEROOTSPACEDISABLE`, `TITLES`, `TITLEIMAGE`, `MAKE_FILE_TREE`.
 
+### XBMC sem servidor web (XBMC4Gamers)
+O XBMC4Gamers vem sem servidor web. A integração usa os built-ins do FTP do XBMC (`SITE RunXBE`, `PlayerControl`, `SetVolume`, `Mute`, `Reboot`, `ShutDown`) e lê a telemetria (temperaturas, ventoinha, memória, tela, mídia tocando) com um script Python 2 instalado em `E:\TDATA\ha_xbox_classico` e rodado via `SITE RunScript`.
+Rodar esse script repetidamente com mídia tocando derrubou o console nos testes (o XBMC fica com ~33 MB livres); por isso, com mídia tocando, a leitura seguinte só acontece no fim previsto da faixa, e os comandos de mídia atualizam o estado na hora, sem reler.
+
 ## Testes
 ```
 uv run --with pillow --with pytest pytest -q tests

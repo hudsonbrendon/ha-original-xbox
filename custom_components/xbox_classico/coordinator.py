@@ -26,6 +26,7 @@ from .api import (
     FTP_APPS,
     XboxOffline,
     offline_activity,
+    parse_duration,
     parse_config,
     set_config,
 )
@@ -87,6 +88,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._xbmc_system: dict = {}
         self._xbmc_system_at = 0.0
         self._script_ok = False
+        self._script_next = 0.0  # próxima execução do ha_info.py
         self.console_info: dict = {}  # versão do Xbox, BIOS, kernel (do script no XBMC)
         self._quiet_until = 0.0
         self._silent_since: float | None = None
@@ -203,14 +205,18 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.xbmc_status = {**status, **self._xbmc_system}
             except XboxError as err:
                 LOGGER.debug("HTTP do XBMC indisponível (webserver ligado?): %s", err)
-                every = SCAN_INTERVAL_SECONDS if self._xbmc_system.get("playing") else XBMC_SYSTEM_SECONDS
-                if now - self._xbmc_system_at >= every - 1:
+                if now >= self._script_next:
                     await self._xbmc_script_telemetry(now)
         return self._data(True, True, activity, probe)
 
     async def _xbmc_script_telemetry(self, now: float) -> None:
-        """XBMC sem servidor web (XBMC4Gamers): telemetria pelo ha_info.py via SITE RunScript."""
+        """XBMC sem servidor web (XBMC4Gamers): telemetria pelo ha_info.py via SITE RunScript.
+
+        Rodar o script várias vezes com mídia tocando derrubou o console 3 de 3 vezes
+        (XBMC4Gamers 3.6, ~33 MB livres); uma execução isolada foi segura. Então, com mídia
+        tocando, a próxima leitura só acontece depois do fim previsto da faixa."""
         self._xbmc_system_at = now
+        self._script_next = now + XBMC_SYSTEM_SECONDS
         try:
             info = await self.hass.async_add_executor_job(self.client.run_xbmc_script, not self.console_info)
         except XboxError as err:
@@ -220,6 +226,10 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             k: info.get(k)
             for k in ("gpu_temp", "cpu_temp", "hdd_temp", "fan", "free_memory", "build", "window", "playing")
         }
+        playing = info.get("playing")
+        if playing:
+            left = (parse_duration(playing.get("Duration")) or 0) - (parse_duration(playing.get("Time")) or 0)
+            self._script_next = now + max(XBMC_SYSTEM_SECONDS, left + 10)
         console = {k: info[k] for k in ("xbox_version", "bios", "kernel", "produced", "cpu_frequency") if info.get(k)}
         if console and console != self.console_info:
             self.console_info = {**self.console_info, **console}
@@ -364,7 +374,18 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if site is None:
             raise XboxError("sem o servidor web do XBMC não dá para pular para uma posição")
         await self.async_site(site.format(value))
-        self._xbmc_system_at = 0.0  # próxima consulta já relê o player
+        # sem reler pelo script (arriscado com mídia tocando): atualiza o estado na hora
+        playing = dict(self._xbmc_system.get("playing") or {})
+        if action == "stop":
+            playing = {}
+            self._script_next = time.time() + XBMC_SYSTEM_SECONDS
+        elif action == "pause" and playing:
+            playing["PlayStatus"] = "Playing" if playing.get("PlayStatus") == "Paused" else "Paused"
+        elif action in ("next", "previous"):
+            self._script_next = time.time() + 5  # uma leitura para pegar a faixa nova
+        self._xbmc_system = {**self._xbmc_system, "playing": playing or None}
+        if self.data:
+            self.async_set_updated_data({**self.data, "telemetria": self._xbmc_system})
 
     async def async_xbmc(self, command: str, parameter: str | None = None) -> str:
         if (self.data or {}).get("activity") != ACT_XBMC:
