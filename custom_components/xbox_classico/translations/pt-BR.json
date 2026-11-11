@@ -41,6 +41,9 @@
       },
       "rede": {
         "name": "Rede"
+      },
+      "travado": {
+        "name": "Travado"
       }
     },
     "button": {
@@ -119,6 +122,7 @@
           "evox": "EvolutionX",
           "outro_app": "Outro aplicativo",
           "jogo": "Em jogo",
+          "travado": "Travado",
           "desligado": "Desligado"
         }
       },

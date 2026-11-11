@@ -17,7 +17,7 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 | Imagem | capa do jogo atual (ou do último) |
 | Câmera | screenshot da tela (XBMC) |
 | Remote | botões do controle (`cima`, `baixo`, `esquerda`, `direita`, `a`/`ok`, `b`/`voltar`, `x`, `y`, `preto`, `branco`, `lt`, `rt`, `start`, `back`) via XBMC |
-| Binários | dashboard (FTP) e rede (ping) |
+| Binários | dashboard (FTP), rede (ping) e **travado** (app congelado: ping responde, porta 21 muda por 5 min depois do XBMC) |
 
 ### Serviços
 `xbox_classico.executar`, `comando_site` (resposta), `xbmc_comando` (resposta), `enviar_arquivo`, `baixar_arquivo`, `listar` (resposta), `backup_saves` (zip em `/config/backups/xbox_classico/`), `atualizar_biblioteca`.
@@ -29,7 +29,7 @@ Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do 
 
 ## Como funciona
 - **Estado**: a cada 15 s o HA conecta no FTP; o banner diz qual app está aberto (`UnleashX` / `FileZilla (XBMC)` / ...). Sem FTP, um ping diferencia *em jogo* de *desligado* quando o jogo mantém a rede ativa; jogos abertos pelo HA ficam marcados até o dashboard voltar.
-- **Abrir jogos**: `SITE EXEC <xbe>` no UnleashX; `XBMC.RunXBE()` no XBMC. Depois de qualquer comando que fecha o app o HA fica 25 s sem consultar o console (o XBMC 2.0 trava se for consultado enquanto fecha).
+- **Abrir jogos**: `SITE EXEC <xbe>` no UnleashX; `XBMC.RunXBE()` no XBMC. Depois de qualquer comando que fecha o app o HA fica 25 s sem consultar o console (o XBMC 2.0 trava se for consultado enquanto fecha). Se mesmo assim ele congelar (ping ok, FTP mudo), a atividade vira `travado` em 5 min — só religando no botão.
 - **Discos**: `SITE DRIVESTAT` (comando oculto do UnleashX) devolve usado/livre/total de todas as partições.
 - **Biblioteca**: varre `E:/F:/G:\Games`, `HDDLoader` e `Apps` (um nível a mais para pastas como `Emulators`), lê o cabeçalho de cada XBE (título, title ID) e a capa (`TitleImage.xbx` ou a seção `$$XTIMAGE` do XBE, DXT1 → PNG).
 - **Config.xml**: editado no lugar (só o valor muda), com backup em `C:\Config.xml.ha-backup` na primeira escrita; o dashboard é recarregado para aplicar.

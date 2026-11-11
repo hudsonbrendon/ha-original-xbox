@@ -41,6 +41,9 @@
       },
       "rede": {
         "name": "Network"
+      },
+      "travado": {
+        "name": "Frozen"
       }
     },
     "button": {
@@ -119,6 +122,7 @@
           "evox": "EvolutionX",
           "outro_app": "Other app",
           "jogo": "In game",
+          "travado": "Frozen",
           "desligado": "Off"
         }
       },

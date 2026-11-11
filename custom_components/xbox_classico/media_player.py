@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import XboxConfigEntry
 from .api import XboxError, parse_duration
-from .const import ACT_DASHBOARD, ACT_OFF, ACT_XBMC, CAT_APPS, CAT_GAMES, MS_DASHBOARD
+from .const import ACT_DASHBOARD, ACT_HUNG, ACT_OFF, ACT_XBMC, CAT_APPS, CAT_GAMES, MS_DASHBOARD
 from .entity import XboxEntity
 
 ROOT = "root"
@@ -69,6 +69,8 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
             return MediaPlayerState.OFF
         if activity == ACT_DASHBOARD:
             return MediaPlayerState.IDLE
+        if activity == ACT_HUNG:
+            return MediaPlayerState.ON
         if self._xbmc is not None:
             status = self._playing.get("PlayStatus", "").lower()
             if not self._playing:
@@ -82,12 +84,16 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
 
     @property
     def media_title(self) -> str | None:
+        if self.data.get("activity") == ACT_HUNG:
+            return "Travado (religue no botão)"
         p = self._playing
         if p:
             return p.get("Title") or p.get("Filename", "").replace("\\", "/").rsplit("/", 1)[-1]
         cur = self._current
         if cur:
             return cur["name"]
+        if self.data.get("activity") == ACT_HUNG:
+            return "Travado (religue no botão)"
         if self.state == MediaPlayerState.PLAYING:
             return "Jogo ou aplicativo"
         return "Dashboard" if self.in_dashboard else None

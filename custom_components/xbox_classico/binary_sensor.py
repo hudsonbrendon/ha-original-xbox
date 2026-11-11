@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import XboxConfigEntry
+from .const import ACT_HUNG
 from .entity import XboxEntity
 
 
@@ -15,7 +16,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: XboxConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     c = entry.runtime_data
-    async_add_entities([XboxBinary(c, "ftp", "online"), XboxBinary(c, "rede", "ping")])
+    async_add_entities([XboxBinary(c, "ftp", "online"), XboxBinary(c, "rede", "ping"), XboxHungSensor(c, "travado")])
 
 
 class XboxBinary(XboxEntity, BinarySensorEntity):
@@ -36,3 +37,13 @@ class XboxBinary(XboxEntity, BinarySensorEntity):
         if self._field == "online":
             return {"banner": self.data.get("banner"), "host": self.coordinator.client.host}
         return None
+
+
+class XboxHungSensor(XboxEntity, BinarySensorEntity):
+    """FTP aceita conexão mas não fala: app congelado, precisa religar no botão."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self) -> bool:
+        return self.data.get("activity") == ACT_HUNG

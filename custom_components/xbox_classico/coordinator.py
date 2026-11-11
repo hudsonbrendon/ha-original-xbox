@@ -21,7 +21,10 @@ from .api import (
     XbmcClient,
     XboxClient,
     XboxError,
+    XboxHung,
+    FTP_APPS,
     XboxOffline,
+    offline_activity,
     parse_config,
     set_config,
 )
@@ -30,6 +33,7 @@ from .const import (
     ACT_DASHBOARD,
     ACT_EVOX,
     ACT_GAME,
+    ACT_HUNG,
     ACT_OFF,
     ACT_OTHER,
     ACT_XBMC,
@@ -82,6 +86,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._xbmc_system: dict = {}
         self._xbmc_system_at = 0.0
         self._quiet_until = 0.0
+        self._silent_since: float | None = None
         self.library: list[dict] = []
         self.saves: list[dict] = []
         self.config_text: str | None = None
@@ -132,8 +137,11 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if time.time() < self._quiet_until and self.data:
             # logo depois de lançar/reiniciar: não tocar no console enquanto o app fecha
             return {**self.data, "at": dt_util.utcnow()}
+        hung = False
         try:
             probe = await self.hass.async_add_executor_job(self.client.probe)
+        except XboxHung:
+            probe, hung = None, True
         except XboxOffline:
             probe = None
         except XboxError as err:
@@ -145,12 +153,15 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ping = await async_ping(self.client.host)
             if self.current and now - self.current["started"] > SESSION_GIVE_UP_SECONDS:
                 self._end_session(now)
-            if self.current or ping:
-                activity = ACT_GAME
-            else:
-                activity = ACT_OFF
+            prev = (self.data or {}).get("activity")
+            if self.current and self.current.get("activity") in FTP_APPS:
+                prev = self.current["activity"]  # sessão aberta num app com FTP (ex.: XBMC)
+            activity, self._silent_since = offline_activity(
+                prev, hung, ping, self.current is not None, self._silent_since, now
+            )
             return self._data(False, ping, activity, None)
 
+        self._silent_since = None
         activity = APP_TO_ACTIVITY.get(probe["app"], ACT_OTHER)
         if activity == ACT_DASHBOARD:
             self.system = probe["system"] or self.system

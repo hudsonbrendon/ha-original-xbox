@@ -36,11 +36,38 @@ class XboxOffline(XboxError):
     """Sem FTP: console desligado, em jogo ou fora da rede."""
 
 
+class XboxHung(XboxOffline):
+    """Porta 21 muda (timeout, sem recusa): conexão sem banner ou SYN sem resposta.
+    Com ping respondendo e vindo do XBMC, é o congelamento do XBMC 2.0 (visto em 11/11/2026)."""
+
+
 @dataclass(frozen=True)
 class Entry:
     name: str
     is_dir: bool
     size: int
+
+
+FTP_APPS = ("xbmc", "avalaunch", "evox", "outro_app", "travado")
+HUNG_AFTER_SECONDS = 300
+
+
+def offline_activity(
+    prev: str | None, silent: bool, ping: bool, launched: bool, silent_since: float | None, now: float
+) -> tuple[str, float | None]:
+    """Atividade com o FTP fora do ar -> (atividade, silent_since).
+
+    silent = porta 21 muda (timeout, não recusa). Travado só quando vinha de um app com FTP
+    (XBMC & cia.), o ping responde e o silêncio dura HUNG_AFTER_SECONDS; antes disso mantém o app.
+    """
+    if silent and ping and prev in FTP_APPS:
+        silent_since = silent_since or now
+        if now - silent_since >= HUNG_AFTER_SECONDS:
+            return "travado", silent_since
+        return prev, silent_since
+    if launched or ping:
+        return "jogo", None
+    return "desligado", None
 
 
 def app_from_banner(banner: str) -> str:
@@ -267,7 +294,10 @@ class XboxClient:
             try:
                 ftp.connect(self.host, self.port)
             except (OSError, EOFError) as err:
-                raise XboxOffline(str(err)) from err
+                # timeout (conectado sem banner ou SYN sem resposta) != recusa (porta fechada)
+                hung = isinstance(err, TimeoutError)
+                ftp.close()
+                raise (XboxHung if hung else XboxOffline)(str(err)) from err
             try:
                 ftp.login(self.username, self.password)
                 yield ftp

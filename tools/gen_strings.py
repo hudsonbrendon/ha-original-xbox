@@ -4,7 +4,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1] / "custom_components" / "xbox
 DRIVES = "cefgxyz"
 # chave: (pt, en)
 ENT = {
-  "binary_sensor": {"ftp": ("Dashboard", "Dashboard"), "rede": ("Rede", "Network")},
+  "binary_sensor": {"ftp": ("Dashboard", "Dashboard"), "rede": ("Rede", "Network"), "travado": ("Travado", "Frozen")},
   "button": {
     "reiniciar": ("Reiniciar", "Restart"), "desligar": ("Desligar", "Shut down"),
     "reinicio_completo": ("Reinício completo", "Power cycle"), "abrir_bandeja": ("Abrir bandeja", "Open tray"),
@@ -34,7 +34,7 @@ ENT = {
     "widescreen": ("Widescreen", "Widescreen"), "use_1080i": ("1080i", "1080i"), "fahrenheit": ("Fahrenheit", "Fahrenheit")},
 }
 ACT = {"dashboard": ("Dashboard", "Dashboard"), "xbmc": ("XBMC", "XBMC"), "avalaunch": ("Avalaunch", "Avalaunch"),
-       "evox": ("EvolutionX", "EvolutionX"), "outro_app": ("Outro aplicativo", "Other app"), "jogo": ("Em jogo", "In game"),
+       "evox": ("EvolutionX", "EvolutionX"), "outro_app": ("Outro aplicativo", "Other app"), "jogo": ("Em jogo", "In game"), "travado": ("Travado", "Frozen"),
        "desligado": ("Desligado", "Off")}
 F_ENTRY = {"config_entry_id": ("Xbox", "Xbox", "Entrada do Xbox (opcional se só houver um).", "Xbox entry (optional with one console).")}
 SVC = {

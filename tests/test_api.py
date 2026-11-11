@@ -132,3 +132,19 @@ def test_xbmc_parsers():
     assert api.parse_temp("GPU: 43°C") == 43.0 and api.parse_temp("CPU: Unknown") is None
     assert api.parse_temp("GPU: 109°F") == 42.8
     assert api.parse_first_number("Fan Speed: 40%") == 40.0 and api.parse_first_number("32MB") == 32.0
+
+
+def test_offline_activity():
+    f = api.offline_activity
+    # XBMC some com porta muda + ping: segura como xbmc, vira travado após 5 min
+    assert f("xbmc", True, True, False, None, 1000) == ("xbmc", 1000)
+    assert f("xbmc", True, True, False, 1000, 1200) == ("xbmc", 1000)
+    assert f("xbmc", True, True, False, 1000, 1300) == ("travado", 1000)
+    assert f("travado", True, True, False, 1000, 5000) == ("travado", 1000)
+    # vindo do dashboard (jogo aberto pelo controle) nunca vira travado
+    assert f("dashboard", True, True, False, None, 1000) == ("jogo", None)
+    # porta recusando / sem ping
+    assert f("xbmc", False, True, False, 1000, 2000) == ("jogo", None)
+    assert f("xbmc", True, False, False, 1000, 2000) == ("desligado", None)
+    assert f(None, False, False, True, None, 0) == ("jogo", None)
+    assert f("dashboard", False, False, False, None, 0) == ("desligado", None)
