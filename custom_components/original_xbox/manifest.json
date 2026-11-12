@@ -1,0 +1,19 @@
+{
+  "domain": "original_xbox",
+  "name": "Original Xbox",
+  "codeowners": [
+    "@hudsonbrendon"
+  ],
+  "config_flow": true,
+  "dhcp": [
+    {
+      "macaddress": "000D3A*"
+    }
+  ],
+  "documentation": "https://github.com/hudsonbrendon/ha-original-xbox",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/hudsonbrendon/ha-original-xbox/issues",
+  "requirements": [],
+  "version": "0.2.0"
+}

@@ -1,6 +1,6 @@
-executar:
+launch:
   fields:
-    caminho:
+    path:
       required: true
       selector:
         text:
@@ -8,10 +8,10 @@ executar:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-comando_site:
+          integration: original_xbox
+site_command:
   fields:
-    comando:
+    command:
       required: true
       selector:
         text:
@@ -19,14 +19,14 @@ comando_site:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-enviar_arquivo:
+          integration: original_xbox
+upload_file:
   fields:
-    origem:
+    source:
       required: true
       selector:
         text:
-    destino:
+    destination:
       required: true
       selector:
         text:
@@ -34,14 +34,14 @@ enviar_arquivo:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-enviar_pasta:
+          integration: original_xbox
+upload_folder:
   fields:
-    origem:
+    source:
       required: true
       selector:
         text:
-    destino:
+    destination:
       required: false
       selector:
         text:
@@ -49,14 +49,14 @@ enviar_pasta:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-baixar_arquivo:
+          integration: original_xbox
+download_file:
   fields:
-    origem:
+    source:
       required: true
       selector:
         text:
-    destino:
+    destination:
       required: true
       selector:
         text:
@@ -64,25 +64,10 @@ baixar_arquivo:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-xbmc_comando:
+          integration: original_xbox
+list_folder:
   fields:
-    comando:
-      required: true
-      selector:
-        text:
-    parametro:
-      required: false
-      selector:
-        text:
-    config_entry_id:
-      required: false
-      selector:
-        config_entry:
-          integration: xbox_classico
-listar:
-  fields:
-    caminho:
+    path:
       required: true
       selector:
         text:
@@ -90,18 +75,33 @@ listar:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
+          integration: original_xbox
+xbmc_command:
+  fields:
+    command:
+      required: true
+      selector:
+        text:
+    parameter:
+      required: false
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: original_xbox
 backup_saves:
   fields:
     config_entry_id:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
-atualizar_biblioteca:
+          integration: original_xbox
+refresh_library:
   fields:
     config_entry_id:
       required: false
       selector:
         config_entry:
-          integration: xbox_classico
+          integration: original_xbox

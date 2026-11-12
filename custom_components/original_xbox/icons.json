@@ -1,0 +1,93 @@
+{
+  "entity": {
+    "button": {
+      "shut_down": "mdi:power",
+      "open_tray": "mdi:eject",
+      "close_tray": "mdi:eject-outline",
+      "restart_network": "mdi:lan-pending",
+      "restart_ftp": "mdi:folder-network",
+      "reload_dashboard": "mdi:view-dashboard",
+      "microsoft_dashboard": "mdi:microsoft-xbox",
+      "backup_saves": "mdi:content-save-all",
+      "refresh_library": "mdi:bookshelf"
+    },
+    "image": {
+      "cover": "mdi:image-album"
+    },
+    "camera": {
+      "screen": "mdi:television-play"
+    },
+    "remote": {
+      "controller": "mdi:controller-classic"
+    },
+    "number": {
+      "screensaver_wait": "mdi:monitor-shimmer",
+      "auto_turn_off": "mdi:timer-power"
+    },
+    "select": {
+      "launch_game": "mdi:gamepad-variant",
+      "launch_app": "mdi:application"
+    },
+    "sensor": {
+      "activity": "mdi:microsoft-xbox",
+      "current_game": "mdi:gamepad-variant",
+      "last_game": "mdi:history",
+      "games": "mdi:disc",
+      "apps": "mdi:apps",
+      "saves": "mdi:content-save",
+      "dashboard": "mdi:view-dashboard",
+      "library_updated": "mdi:bookshelf",
+      "fan_speed": "mdi:fan",
+      "free_memory": "mdi:memory",
+      "xbmc_window": "mdi:kodi",
+      "xbmc_version": "mdi:kodi",
+      "free_c": "mdi:harddisk",
+      "free_e": "mdi:harddisk",
+      "free_f": "mdi:harddisk",
+      "free_g": "mdi:harddisk",
+      "free_x": "mdi:harddisk",
+      "free_y": "mdi:harddisk",
+      "free_z": "mdi:harddisk"
+    },
+    "switch": {
+      "sntp": "mdi:clock-check",
+      "autolaunch_games": "mdi:disc-player",
+      "autolaunch_dvd": "mdi:movie-open",
+      "autolaunch_audiocd": "mdi:album",
+      "autolaunch_data": "mdi:disc",
+      "newsfeed": "mdi:newspaper",
+      "widescreen": "mdi:monitor",
+      "use_1080i": "mdi:television",
+      "fahrenheit": "mdi:thermometer"
+    }
+  },
+  "services": {
+    "launch": {
+      "service": "mdi:play"
+    },
+    "site_command": {
+      "service": "mdi:console"
+    },
+    "upload_file": {
+      "service": "mdi:upload"
+    },
+    "upload_folder": {
+      "service": "mdi:folder-upload"
+    },
+    "download_file": {
+      "service": "mdi:download"
+    },
+    "list_folder": {
+      "service": "mdi:folder-open"
+    },
+    "xbmc_command": {
+      "service": "mdi:kodi"
+    },
+    "backup_saves": {
+      "service": "mdi:content-save-all"
+    },
+    "refresh_library": {
+      "service": "mdi:bookshelf"
+    }
+  }
+}

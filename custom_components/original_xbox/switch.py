@@ -1,4 +1,4 @@
-"""Switches que editam o Config.xml do UnleashX (com backup e recarga do dashboard)."""
+"""Switches that edit the UnleashX Config.xml (with a backup and a dashboard reload)."""
 
 from __future__ import annotations
 

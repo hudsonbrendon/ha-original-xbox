@@ -1,4 +1,4 @@
-"""Entidade base do Xbox Clássico."""
+"""Base entity for the Original Xbox integration."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ class XboxEntity(CoordinatorEntity[XboxCoordinator]):
 
 
 class XboxDashboardEntity(XboxEntity):
-    """Comandos que só o UnleashX entende: disponíveis com o console no dashboard."""
+    """Commands only UnleashX understands: available with the console on the dashboard."""
 
     @property
     def available(self) -> bool:
@@ -47,19 +47,19 @@ class XboxDashboardEntity(XboxEntity):
 
 
 class XboxControlEntity(XboxEntity):
-    """Disponível no UnleashX ou no XBMC (HTTP API ou, sem ela, SITE do FTP do XBMC)."""
+    """Available in UnleashX or XBMC (HTTP API or, without it, the XBMC FTP SITE command)."""
 
     @property
     def available(self) -> bool:
-        # chama a base direto: no MRO dos botões o próximo seria XboxDashboardEntity
+        # call the base directly: in the buttons MRO the next one would be XboxDashboardEntity
         if not XboxEntity.available.fget(self):
             return False
-        # no XBMC vale com ou sem servidor web: sem ele, os comandos vão pelo SITE do FTP do XBMC
+        # in XBMC it works with or without the web server: without it, commands go via the XBMC FTP SITE
         return self.in_dashboard or (self.data.get("activity") == ACT_XBMC and bool(self.data.get("online")))
 
 
 class XboxXbmcEntity(XboxEntity):
-    """Só com o XBMC aberto e a HTTP API respondendo."""
+    """Only with XBMC running and the HTTP API answering."""
 
     @property
     def xbmc(self) -> dict:

@@ -1,47 +1,242 @@
-# Xbox Clássico para Home Assistant
+<p align="center">
+  <img src="assets/original-xbox-logo.png" alt="Original Xbox" width="420">
+</p>
 
-Controla um **Xbox original desbloqueado** (softmod ou chip) pelo Home Assistant, 100% local, sem nada instalado no console além do dashboard que você já usa.
+# Original Xbox for Home Assistant
 
-Tudo sai do FTP do dashboard (UnleashX, XBMC, Avalaunch, EvoX) e da HTTP API do XBMC. Os comandos `SITE` usados foram mapeados por engenharia reversa do UnleashX 0.37.1218A.
+[![Tests](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/tests.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/tests.yml)
+[![Hassfest](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/hassfest.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/hassfest.yml)
+[![Validate](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
+[![Release](https://img.shields.io/github/v/release/hudsonbrendon/ha-original-xbox)](https://github.com/hudsonbrendon/ha-original-xbox/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## O que aparece no HA
+Monitor and control a **softmodded or modchipped original Xbox (2001)** from Home Assistant —
+what is running, the game library with cover art, disk space, temperatures, power, the
+disc tray, dashboard settings, file transfers and XBMC media playback.
 
-| Plataforma | Entidades |
+> 100% local, nothing to install on the console. Everything goes through the FTP server of the
+> dashboard you already run (UnleashX, XBMC/XBMC4Gamers, Avalaunch, EvolutionX), the hidden FTP
+> `SITE` commands of UnleashX 0.37 (mapped by reverse engineering) and, when available, the XBMC
+> HTTP API. Not affiliated with Microsoft.
+
+## Features
+
+- **Now playing** — a media player that is `off`, `idle` on the dashboard or `playing` a game,
+  with the game title and cover art. `select_source` / `play_media` launch any game or app, and the
+  media browser lists the whole library with covers. In XBMC: play/pause/stop/next/previous,
+  volume, mute and seek.
+- **Game library** — scans `Games`, `HDDLoader` and `Apps` on E:/F:/G: (one extra level for folders
+  like `Emulators`), reads each XBE header (title, title ID) and its cover (`TitleImage.xbx` or the
+  `$$XTIMAGE` section, DXT1 → PNG).
+- **Activity** — dashboard / XBMC / Avalaunch / EvolutionX / other app / in game / frozen / off,
+  plus current game, last game and last session length.
+- **Disks** — free space (GB) and usage (%) of C, E, F, G, X, Y and Z through the hidden
+  `SITE DRIVESTAT` command.
+- **Power & tray** — restart, shut down, open/close tray, restart network, restart FTP, reload the
+  dashboard, boot the Microsoft dashboard.
+- **Dashboard settings** — switches and numbers that edit UnleashX `C:\Config.xml` in place
+  (clock sync, auto-launch on disc insert, news feed, widescreen, 1080i, Fahrenheit, screen saver,
+  auto power off), with a backup on the first write.
+- **XBMC telemetry** — GPU/CPU/hard drive temperature, fan speed, free memory, current XBMC window
+  and version; screenshot camera and controller remote on XBMC builds with the web server.
+- **Frozen detection** — a problem binary sensor when an app hangs (ping answers, FTP stays mute).
+- **Saves backup** — zips `E:\UDATA` into `/config/backups/original_xbox/`.
+- **File transfers** — upload a file or a whole folder (add a game), download a file, list a folder.
+- **Discovery** — consoles are found by DHCP (Microsoft `00:0D:3A` MAC prefix).
+- **Diagnostics** — downloadable diagnostics with the FTP password redacted.
+
+## Requirements
+
+- An original Xbox that boots a homebrew dashboard with **FTP enabled** (softmod or modchip).
+  Tested on a v1.6 with UnleashX 0.37.1218A, XBMC 2.0 and XBMC4Gamers 3.6.
+- FTP credentials (UnleashX default: `xbox` / `xbox`, lowercase).
+- A fixed IP for the Xbox (DHCP reservation on the router).
+- Optional, for XBMC telemetry, screenshots and the remote on XBMC builds that have it:
+  `<webserver>true</webserver>` in `UserData\guisettings.xml`. XBMC4Gamers has no web server; see
+  [XBMC4Gamers](#xbmc4gamers-no-web-server).
+
+## Installation
+
+### HACS (recommended)
+
+1. HACS → ⋮ → **Custom repositories** → add `https://github.com/hudsonbrendon/ha-original-xbox`
+   as an **Integration**.
+2. Install **Original Xbox** and restart Home Assistant.
+
+### Manual
+
+Copy `custom_components/original_xbox` into your `config/custom_components/` folder and restart
+Home Assistant.
+
+## Setup
+
+Turn the Xbox on and leave it on the dashboard. It usually shows up under **Settings → Devices &
+services → Discovered**; otherwise **Add integration → Original Xbox** and enter:
+
+| Field | Default |
 |---|---|
-| Media player | estado (desligado / dashboard / jogando), jogo atual com capa, **abrir jogo/app** (`select_source`, `play_media`), biblioteca navegável com capas, desligar; no XBMC: play/pausa/parar/próxima/anterior/volume/mudo/seek |
-| Sensores | atividade, jogo atual, último jogo, última sessão (min), nº de jogos / apps / saves, espaço livre e uso (%) de C, E, F, G, X, Y, Z, versão do dashboard; no XBMC: temperatura da GPU/CPU, ventoinha, memória livre, tela do XBMC, versão do XBMC |
-| Botões | reiniciar (POWERCYCLE — o `REBOOT` do UnleashX 0.37 não funciona), desligar, abrir/fechar bandeja, reiniciar rede, reiniciar FTP, recarregar dashboard, dashboard Microsoft, backup dos saves, atualizar biblioteca |
-| Selects | abrir jogo, abrir aplicativo |
-| Switches (Config.xml) | sincronizar relógio (SNTP), abrir jogo/DVD/CD/dados ao inserir, notícias, widescreen, 1080i, Fahrenheit |
-| Números (Config.xml) | proteção de tela, desligamento automático |
-| Imagem | capa do jogo atual (ou do último) |
-| Câmera | screenshot da tela (XBMC) |
-| Remote | botões do controle (`cima`, `baixo`, `esquerda`, `direita`, `a`/`ok`, `b`/`voltar`, `x`, `y`, `preto`, `branco`, `lt`, `rt`, `start`, `back`) via XBMC |
-| Binários | dashboard (FTP), rede (ping) e **travado** (app congelado: ping responde, porta 21 muda por 5 min depois do XBMC) |
+| IP address | — |
+| FTP user | `xbox` |
+| FTP password | `xbox` |
 
-### Serviços
-`xbox_classico.executar`, `comando_site` (resposta), `xbmc_comando` (resposta), `enviar_arquivo`, **`enviar_pasta`** (copia uma pasta do HA — ex.: um jogo seu ou um app homebrew — para `F:\Games\<nome>` e atualiza a biblioteca), `baixar_arquivo`, `listar` (resposta), `backup_saves` (zip em `/config/backups/xbox_classico/`), `atualizar_biblioteca`.
+The flow connects to the FTP server before creating the entry. **Options** let you change the
+dashboard XBE that is reloaded after a settings change (default `C:\evoxdash.xbe`).
 
-## Requisitos
-- FTP do dashboard ligado (UnleashX: `xbox`/`xbox` por padrão).
-- Para telemetria/controle de mídia no XBMC: `<webserver>true</webserver>` em `F:\Apps\XBMC\UserData\guisettings.xml`.
-- IP fixo para o Xbox (reserva DHCP no roteador).
+## Entities
 
-## Como funciona
-- **Estado**: a cada 15 s o HA conecta no FTP; o banner diz qual app está aberto (`UnleashX` / `FileZilla (XBMC)` / ...). Sem FTP, um ping diferencia *em jogo* de *desligado* quando o jogo mantém a rede ativa; jogos abertos pelo HA ficam marcados até o dashboard voltar.
-- **Abrir jogos**: `SITE EXEC <xbe>` no UnleashX; `XBMC.RunXBE()` no XBMC. Depois de qualquer comando que fecha o app o HA fica 25 s sem consultar o console (o XBMC 2.0 trava se for consultado enquanto fecha). Se mesmo assim ele congelar (ping ok, FTP mudo), a atividade vira `travado` em 5 min — só religando no botão.
-- **Discos**: `SITE DRIVESTAT` (comando oculto do UnleashX) devolve usado/livre/total de todas as partições.
-- **Biblioteca**: varre `E:/F:/G:\Games`, `HDDLoader` e `Apps` (um nível a mais para pastas como `Emulators`), lê o cabeçalho de cada XBE (título, title ID) e a capa (`TitleImage.xbx` ou a seção `$$XTIMAGE` do XBE, DXT1 → PNG).
-- **Config.xml**: editado no lugar (só o valor muda), com backup em `C:\Config.xml.ha-backup` na primeira escrita; o dashboard é recarregado para aplicar.
+### Media player
+State (`off` / `idle` / `playing`), current game with cover, source list = library, media browser
+with covers, turn off. In XBMC also playback controls, volume, mute and seek.
 
-### Comandos SITE do UnleashX 0.37 (RE)
-`REBOOT`/`RESTART` (chamam `XLaunchNewImage(NULL)` e falham calados neste build), `SHUTDOWN`, `POWERCYCLE` (reinicia de fato; responde 502 depois de agir), `FTPRESET`, `FTPSTOP`, `NETRESET`, `TRAYOPEN`/`EJECT`, `TRAYCLOSE`, `DRIVESTAT`, `EXEC <xbe>`, `LAUNCH <xbe>`, `MD5 <arquivo>`, `XBERENAME`, `FREESPACE <drive>`, `FREEROOTSPACEDISABLE`, `TITLES`, `TITLEIMAGE`, `MAKE_FILE_TREE`.
+### Binary sensors
+| Entity | Meaning |
+|---|---|
+| Dashboard | the dashboard FTP server answers |
+| Network | the console answers ping |
+| Frozen | an app hung: ping answers but FTP stays mute for 5 min after XBMC |
 
-### XBMC sem servidor web (XBMC4Gamers)
-O XBMC4Gamers vem sem servidor web. A integração usa os built-ins do FTP do XBMC (`SITE RunXBE`, `PlayerControl`, `SetVolume`, `Mute`, `Reboot`, `ShutDown`) e lê a telemetria (temperaturas, ventoinha, memória, tela, mídia tocando) com um script Python 2 instalado em `E:\TDATA\ha_xbox_classico` e rodado via `SITE RunScript`.
-Rodar esse script repetidamente com mídia tocando derrubou o console nos testes (o XBMC fica com ~33 MB livres); por isso, com mídia tocando, a leitura seguinte só acontece no fim previsto da faixa, e os comandos de mídia atualizam o estado na hora, sem reler.
+### Sensors
+Activity, current game, last game, last session (min), games, apps, saves, library updated,
+dashboard version, free/usage per drive (C, E, F, G, X, Y, Z). In XBMC: GPU/CPU/hard drive
+temperature, fan speed, free memory, XBMC window, XBMC version.
 
-## Testes
+### Buttons
+Restart (`SITE POWERCYCLE` — `REBOOT` does not work on UnleashX 0.37), shut down, open tray,
+close tray, restart network, restart FTP, reload dashboard, Microsoft dashboard, back up saves,
+refresh library.
+
+### Selects
+Launch game, launch app.
+
+### Switches and numbers (`C:\Config.xml`)
+Sync clock (SNTP), auto-launch games / DVD / audio CD / data discs, news feed, widescreen, 1080i,
+Fahrenheit; screen saver delay and auto power off.
+
+### Image, camera and remote
+Cover of the current (or last) game; XBMC screenshot camera; remote with `up`, `down`, `left`,
+`right`, `a`/`ok`, `b`, `x`, `y`, `black`, `white`, `lt`, `rt`, `l3`, `r3`, `start`, `back`.
+
+## Actions
+
+| Action | Fields | Returns |
+|---|---|---|
+| `original_xbox.launch` | `path` — library name or `.xbe` path | — |
+| `original_xbox.site_command` | `command` — raw FTP `SITE` command | `reply` |
+| `original_xbox.xbmc_command` | `command`, `parameter` (optional) | `reply` |
+| `original_xbox.upload_file` | `source` (HA path), `destination` (Xbox path; end with `\` to keep the name) | — |
+| `original_xbox.upload_folder` | `source` (HA folder), `destination` (default `F:\Games\<folder>`) | `destination`, `files`, `bytes`, `skipped` |
+| `original_xbox.download_file` | `source` (Xbox path), `destination` (HA path) | `file`, `bytes` |
+| `original_xbox.list_folder` | `path` | `items` (`name`, `is_dir`, `size`) |
+| `original_xbox.backup_saves` | — | `file` |
+| `original_xbox.refresh_library` | — | — |
+
+Every action also takes an optional `config_entry_id` when more than one console is configured.
+Paths on Home Assistant must be in
+[`allowlist_external_dirs`](https://www.home-assistant.io/integrations/homeassistant/#allowlist_external_dirs).
+`upload_folder` skips names FATX rejects (longer than 42 characters or with invalid characters) and
+returns them in `skipped`.
+
+### Examples
+
+```yaml
+# Launch a game by its library name
+action: original_xbox.launch
+data:
+  path: Halo 2
+
+# Add a game copied to /media
+action: original_xbox.upload_folder
+data:
+  source: /media/xbox/Crash Twinsanity
+
+# Free space on every partition
+action: original_xbox.site_command
+data:
+  command: DRIVESTAT
 ```
-uv run --with pillow --with pytest pytest -q tests
+
+Turn the lights down when a game starts:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.original_xbox_activity
+    to: game
+actions:
+  - action: scene.turn_on
+    target:
+      entity_id: scene.gaming
 ```
+
+## How it works
+
+- **State** — every 15 s Home Assistant connects to FTP; the banner tells which app is open
+  (`UnleashX`, `FileZilla (XBMC)`, ...). Without FTP, a ping tells *in game* from *off* when the game
+  keeps the network up; games launched from Home Assistant stay marked until the dashboard returns.
+- **Launching** — `SITE EXEC <xbe>` on UnleashX, `RunXBE` on XBMC. After any command that closes the
+  app, Home Assistant stays quiet for 25 s, because XBMC 2.0 freezes if it is queried while closing.
+- **Disks** — the hidden `SITE DRIVESTAT` returns used/free/total for every partition.
+- **Config.xml** — edited in place (only the value changes), backed up to `C:\Config.xml.ha-backup`
+  on the first write; the dashboard is reloaded to apply it.
+
+### UnleashX 0.37 FTP `SITE` commands (reverse engineered)
+
+`REBOOT`/`RESTART` (call `XLaunchNewImage(NULL)` and fail silently in this build), `SHUTDOWN`,
+`POWERCYCLE` (really restarts; replies 502 after acting), `FTPRESET`, `FTPSTOP`, `NETRESET`,
+`TRAYOPEN`/`EJECT`, `TRAYCLOSE`, `DRIVESTAT`, `EXEC <xbe>`, `LAUNCH <xbe>`, `MD5 <file>`,
+`XBERENAME`, `FREESPACE <drive>`, `FREEROOTSPACEDISABLE`, `TITLES`, `TITLEIMAGE`, `MAKE_FILE_TREE`.
+
+### XBMC4Gamers (no web server)
+
+XBMC4Gamers ships without the web server, so the integration uses the built-ins of the XBMC FTP
+server (`SITE RunXBE`, `PlayerControl`, `SetVolume`, `Mute`, `Reboot`, `ShutDown`) and reads the
+telemetry (temperatures, fan, memory, window, now playing) with a small Python 2 script it installs
+in `E:\TDATA\ha_original_xbox` and runs through `SITE RunScript`.
+
+## Known limitations
+
+- **No control while a game runs.** Games do not run an FTP server; Home Assistant only knows the
+  console is in a game (ping plus the last launch) until you go back to the dashboard.
+- **No power on.** The original Xbox has no Wake-on-LAN.
+- **Camera and remote need the XBMC HTTP API**, which XBMC4Gamers does not have.
+- **XBMC4Gamers memory.** Running the telemetry script repeatedly while music plays crashed the
+  console in tests, so while media plays the next read only happens at the expected end of the track
+  and media commands update the state optimistically.
+- **XBMC 2.0 freezes** if queried while it closes to launch another XBE; the 25 s quiet period
+  avoids it, and the Frozen sensor reports it when it still happens (only the power button helps).
+
+## Troubleshooting
+
+- **Cannot connect** — the console must be on the dashboard with FTP enabled; try
+  `ftp <ip>` from a computer with the same credentials. UnleashX credentials are case sensitive.
+- **Entities unavailable** — most controls need the dashboard (UnleashX) or XBMC open; they are
+  unavailable in games by design.
+- **Debug logs** — add to `configuration.yaml`:
+
+  ```yaml
+  logger:
+    logs:
+      custom_components.original_xbox: debug
+  ```
+
+## Removal
+
+Settings → Devices & services → Original Xbox → ⋮ → **Delete**, then remove the repository from
+HACS (or delete `custom_components/original_xbox`) and restart. Optionally delete
+`E:\TDATA\ha_original_xbox` on the console and `/config/backups/original_xbox`.
+
+## Development
+
+```bash
+pip install -r requirements_test.txt
+ruff check .
+pytest
+```
+
+`python tools/gen_strings.py` regenerates `strings.json`, the translations, `services.yaml` and
+`icons.json`.
+
+## License
+
+[MIT](LICENSE)

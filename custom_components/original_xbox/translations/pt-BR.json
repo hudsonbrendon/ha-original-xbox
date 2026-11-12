@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Xbox Clássico",
+        "title": "Xbox original",
         "description": "Deixe o Xbox no dashboard (UnleashX) com o FTP ligado.",
         "data": {
           "host": "Endereço IP",
@@ -17,7 +17,7 @@
     },
     "abort": {
       "already_configured": "Este Xbox já está configurado.",
-      "not_xbox": "Não é um Xbox clássico com dashboard compatível."
+      "not_xbox": "Não é um Xbox original com dashboard compatível."
     },
     "flow_title": "Xbox ({host})"
   },
@@ -39,57 +39,57 @@
       "ftp": {
         "name": "Dashboard"
       },
-      "rede": {
+      "network": {
         "name": "Rede"
       },
-      "travado": {
+      "frozen": {
         "name": "Travado"
       }
     },
     "button": {
-      "reiniciar": {
+      "restart": {
         "name": "Reiniciar"
       },
-      "desligar": {
+      "shut_down": {
         "name": "Desligar"
       },
-      "abrir_bandeja": {
+      "open_tray": {
         "name": "Abrir bandeja"
       },
-      "fechar_bandeja": {
+      "close_tray": {
         "name": "Fechar bandeja"
       },
-      "reiniciar_rede": {
+      "restart_network": {
         "name": "Reiniciar rede"
       },
-      "reiniciar_ftp": {
+      "restart_ftp": {
         "name": "Reiniciar FTP"
       },
-      "recarregar_dashboard": {
+      "reload_dashboard": {
         "name": "Recarregar dashboard"
       },
-      "dashboard_microsoft": {
+      "microsoft_dashboard": {
         "name": "Dashboard Microsoft"
       },
       "backup_saves": {
         "name": "Backup dos saves"
       },
-      "atualizar_biblioteca": {
+      "refresh_library": {
         "name": "Atualizar biblioteca"
       }
     },
     "image": {
-      "capa": {
+      "cover": {
         "name": "Capa"
       }
     },
     "camera": {
-      "tela": {
+      "screen": {
         "name": "Tela"
       }
     },
     "remote": {
-      "controle": {
+      "controller": {
         "name": "Controle"
       }
     },
@@ -102,112 +102,112 @@
       }
     },
     "select": {
-      "abrir_jogo": {
+      "launch_game": {
         "name": "Abrir jogo"
       },
-      "abrir_aplicativo": {
+      "launch_app": {
         "name": "Abrir aplicativo"
       }
     },
     "sensor": {
-      "atividade": {
+      "activity": {
         "name": "Atividade",
         "state": {
           "dashboard": "Dashboard",
           "xbmc": "XBMC",
           "avalaunch": "Avalaunch",
           "evox": "EvolutionX",
-          "outro_app": "Outro aplicativo",
-          "jogo": "Em jogo",
-          "travado": "Travado",
-          "desligado": "Desligado"
+          "other_app": "Outro aplicativo",
+          "game": "Em jogo",
+          "frozen": "Travado",
+          "off": "Desligado"
         }
       },
-      "jogo_atual": {
+      "current_game": {
         "name": "Jogo atual"
       },
-      "ultimo_jogo": {
+      "last_game": {
         "name": "Último jogo"
       },
-      "ultima_sessao": {
+      "last_session": {
         "name": "Última sessão"
       },
-      "jogos": {
+      "games": {
         "name": "Jogos"
       },
-      "aplicativos": {
+      "apps": {
         "name": "Aplicativos"
       },
       "saves": {
         "name": "Saves"
       },
-      "biblioteca_atualizada": {
+      "library_updated": {
         "name": "Biblioteca atualizada"
       },
       "dashboard": {
         "name": "Dashboard"
       },
-      "temperatura_gpu": {
+      "gpu_temperature": {
         "name": "Temperatura da GPU"
       },
-      "temperatura_cpu": {
+      "cpu_temperature": {
         "name": "Temperatura da CPU"
       },
-      "temperatura_hd": {
+      "hdd_temperature": {
         "name": "Temperatura do HD"
       },
-      "ventoinha": {
+      "fan_speed": {
         "name": "Ventoinha"
       },
-      "memoria_livre": {
+      "free_memory": {
         "name": "Memória livre"
       },
-      "tela_xbmc": {
+      "xbmc_window": {
         "name": "Tela do XBMC"
       },
-      "versao_xbmc": {
+      "xbmc_version": {
         "name": "Versão do XBMC"
       },
-      "livre_c": {
+      "free_c": {
         "name": "Livre C"
       },
-      "livre_e": {
+      "free_e": {
         "name": "Livre E"
       },
-      "livre_f": {
+      "free_f": {
         "name": "Livre F"
       },
-      "livre_g": {
+      "free_g": {
         "name": "Livre G"
       },
-      "livre_x": {
+      "free_x": {
         "name": "Livre X"
       },
-      "livre_y": {
+      "free_y": {
         "name": "Livre Y"
       },
-      "livre_z": {
+      "free_z": {
         "name": "Livre Z"
       },
-      "uso_c": {
+      "usage_c": {
         "name": "Uso C"
       },
-      "uso_e": {
+      "usage_e": {
         "name": "Uso E"
       },
-      "uso_f": {
+      "usage_f": {
         "name": "Uso F"
       },
-      "uso_g": {
+      "usage_g": {
         "name": "Uso G"
       },
-      "uso_x": {
+      "usage_x": {
         "name": "Uso X"
       },
-      "uso_y": {
+      "usage_y": {
         "name": "Uso Y"
       },
-      "uso_z": {
+      "usage_z": {
         "name": "Uso Z"
       }
     },
@@ -242,11 +242,11 @@
     }
   },
   "services": {
-    "executar": {
+    "launch": {
       "name": "Abrir XBE",
       "description": "Abre um jogo/app pelo nome da biblioteca ou caminho (ex.: F:\\Games\\Halo 2\\default.xbe).",
       "fields": {
-        "caminho": {
+        "path": {
           "name": "Caminho ou nome",
           "description": "Nome do jogo ou caminho do .xbe."
         },
@@ -256,11 +256,11 @@
         }
       }
     },
-    "comando_site": {
+    "site_command": {
       "name": "Comando SITE",
-      "description": "Envia um comando SITE cru ao UnleashX (DRIVESTAT, MD5 C:\\arquivo, TRAYOPEN...).",
+      "description": "Envia um comando SITE cru ao dashboard (DRIVESTAT, MD5 C:\\arquivo, TRAYOPEN...) e devolve a resposta.",
       "fields": {
-        "comando": {
+        "command": {
           "name": "Comando",
           "description": "Ex.: DRIVESTAT"
         },
@@ -270,15 +270,15 @@
         }
       }
     },
-    "enviar_arquivo": {
+    "upload_file": {
       "name": "Enviar arquivo",
       "description": "Envia um arquivo do HA para o Xbox (ROMs, skins, configs).",
       "fields": {
-        "origem": {
+        "source": {
           "name": "Origem",
           "description": "Caminho no HA (em allowlist_external_dirs)."
         },
-        "destino": {
+        "destination": {
           "name": "Destino",
           "description": "Caminho no Xbox; termine com \\ para manter o nome."
         },
@@ -288,15 +288,15 @@
         }
       }
     },
-    "enviar_pasta": {
+    "upload_folder": {
       "name": "Enviar pasta (adicionar jogo)",
       "description": "Copia uma pasta do HA para o Xbox, por padrão F:\\Games\\<nome da pasta>, e atualiza a biblioteca.",
       "fields": {
-        "origem": {
+        "source": {
           "name": "Pasta de origem",
           "description": "Pasta no HA com o default.xbe (ex.: /media/jogos/Meu Jogo)."
         },
-        "destino": {
+        "destination": {
           "name": "Destino",
           "description": "Opcional. Padrão: F:\\Games\\<nome da pasta>."
         },
@@ -306,15 +306,15 @@
         }
       }
     },
-    "baixar_arquivo": {
+    "download_file": {
       "name": "Baixar arquivo",
       "description": "Copia um arquivo do Xbox para o HA.",
       "fields": {
-        "origem": {
+        "source": {
           "name": "Origem",
           "description": "Caminho no Xbox (ex.: C:\\Config.xml)."
         },
-        "destino": {
+        "destination": {
           "name": "Destino",
           "description": "Caminho no HA (em allowlist_external_dirs)."
         },
@@ -324,29 +324,11 @@
         }
       }
     },
-    "xbmc_comando": {
-      "name": "Comando do XBMC",
-      "description": "Chama a HTTP API do XBMC (ex.: ExecBuiltIn com XBMC.ActivateWindow(MyMusic)).",
-      "fields": {
-        "comando": {
-          "name": "Comando",
-          "description": "Ex.: GetCurrentlyPlaying"
-        },
-        "parametro": {
-          "name": "Parâmetro",
-          "description": "Opcional."
-        },
-        "config_entry_id": {
-          "name": "Xbox",
-          "description": "Entrada do Xbox (opcional se só houver um)."
-        }
-      }
-    },
-    "listar": {
+    "list_folder": {
       "name": "Listar pasta",
       "description": "Lista uma pasta do Xbox.",
       "fields": {
-        "caminho": {
+        "path": {
           "name": "Pasta",
           "description": "Ex.: F:\\Games"
         },
@@ -356,9 +338,27 @@
         }
       }
     },
+    "xbmc_command": {
+      "name": "Comando do XBMC",
+      "description": "Chama a HTTP API do XBMC (ex.: ExecBuiltIn com XBMC.ActivateWindow(MyMusic)).",
+      "fields": {
+        "command": {
+          "name": "Comando",
+          "description": "Ex.: GetCurrentlyPlaying"
+        },
+        "parameter": {
+          "name": "Parâmetro",
+          "description": "Opcional."
+        },
+        "config_entry_id": {
+          "name": "Xbox",
+          "description": "Entrada do Xbox (opcional se só houver um)."
+        }
+      }
+    },
     "backup_saves": {
       "name": "Backup dos saves",
-      "description": "Baixa E:\\UDATA para /config/backups/xbox_classico/.",
+      "description": "Baixa E:\\UDATA para /config/backups/original_xbox/.",
       "fields": {
         "config_entry_id": {
           "name": "Xbox",
@@ -366,7 +366,7 @@
         }
       }
     },
-    "atualizar_biblioteca": {
+    "refresh_library": {
       "name": "Atualizar biblioteca",
       "description": "Varre de novo jogos, apps e saves.",
       "fields": {

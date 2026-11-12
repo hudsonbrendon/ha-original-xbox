@@ -1,8 +1,11 @@
-"""Sensores binários: dashboard no ar (FTP) e console na rede (ping)."""
+"""Binary sensors: dashboard up (FTP) and console on the network (ping)."""
 
 from __future__ import annotations
 
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -16,7 +19,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: XboxConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     c = entry.runtime_data
-    async_add_entities([XboxBinary(c, "ftp", "online"), XboxBinary(c, "rede", "ping"), XboxHungSensor(c, "travado")])
+    async_add_entities([XboxBinary(c, "ftp", "online"), XboxBinary(c, "network", "ping"), XboxHungSensor(c, "frozen")])
 
 
 class XboxBinary(XboxEntity, BinarySensorEntity):
@@ -25,7 +28,7 @@ class XboxBinary(XboxEntity, BinarySensorEntity):
     def __init__(self, coordinator, key: str, field: str) -> None:
         super().__init__(coordinator, key)
         self._field = field
-        if key == "rede":
+        if key == "network":
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -40,7 +43,7 @@ class XboxBinary(XboxEntity, BinarySensorEntity):
 
 
 class XboxHungSensor(XboxEntity, BinarySensorEntity):
-    """FTP aceita conexão mas não fala: app congelado, precisa religar no botão."""
+    """FTP accepts the connection but stays silent: app frozen, needs a power-button restart."""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
