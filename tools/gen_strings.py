@@ -133,8 +133,8 @@ SVC = {
     "upload_folder": (
         ("Upload folder (add game)", "Enviar pasta (adicionar jogo)"),
         (
-            r"Copy a folder from Home Assistant to the Xbox (default F:\Games\<folder name>) and refresh the library.",
-            r"Copia uma pasta do HA para o Xbox, por padrão F:\Games\<nome da pasta>, e atualiza a biblioteca.",
+            r"Copy a folder from Home Assistant to the Xbox (default: F:\Games\ plus the folder name) and refresh the library.",
+            r"Copia uma pasta do HA para o Xbox, por padrão F:\Games\ + nome da pasta, e atualiza a biblioteca.",
         ),
         {
             "source": (
@@ -146,8 +146,8 @@ SVC = {
             "destination": (
                 "Destination",
                 "Destino",
-                r"Optional. Default: F:\Games\<folder name>.",
-                r"Opcional. Padrão: F:\Games\<nome da pasta>.",
+                r"Optional. Default: F:\Games\ plus the folder name.",
+                r"Opcional. Padrão: F:\Games\ + nome da pasta.",
             ),
         },
     ),
@@ -338,7 +338,8 @@ en, pt = build(0, "en"), build(1, "pt")
 dump(ROOT / "strings.json", en)
 dump(ROOT / "translations" / "en.json", en)
 dump(ROOT / "translations" / "pt-BR.json", pt)
-dump(ROOT / "icons.json", {"entity": ICONS, "services": {k: {"service": v} for k, v in SVC_ICONS.items()}})
+entity_icons = {plat: {k: {"default": v} for k, v in keys.items()} for plat, keys in ICONS.items()}
+dump(ROOT / "icons.json", {"entity": entity_icons, "services": {k: {"service": v} for k, v in SVC_ICONS.items()}})
 lines = []
 for svc, (_, _, fields) in SVC.items():
     lines += [f"{svc}:", "  fields:"]

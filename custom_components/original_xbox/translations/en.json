@@ -290,7 +290,7 @@
     },
     "upload_folder": {
       "name": "Upload folder (add game)",
-      "description": "Copy a folder from Home Assistant to the Xbox (default F:\\Games\\<folder name>) and refresh the library.",
+      "description": "Copy a folder from Home Assistant to the Xbox (default: F:\\Games\\ plus the folder name) and refresh the library.",
       "fields": {
         "source": {
           "name": "Source folder",
@@ -298,7 +298,7 @@
         },
         "destination": {
           "name": "Destination",
-          "description": "Optional. Default: F:\\Games\\<folder name>."
+          "description": "Optional. Default: F:\\Games\\ plus the folder name."
         },
         "config_entry_id": {
           "name": "Xbox",

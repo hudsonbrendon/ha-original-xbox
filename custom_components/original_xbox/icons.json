@@ -1,64 +1,152 @@
 {
   "entity": {
     "button": {
-      "shut_down": "mdi:power",
-      "open_tray": "mdi:eject",
-      "close_tray": "mdi:eject-outline",
-      "restart_network": "mdi:lan-pending",
-      "restart_ftp": "mdi:folder-network",
-      "reload_dashboard": "mdi:view-dashboard",
-      "microsoft_dashboard": "mdi:microsoft-xbox",
-      "backup_saves": "mdi:content-save-all",
-      "refresh_library": "mdi:bookshelf"
+      "shut_down": {
+        "default": "mdi:power"
+      },
+      "open_tray": {
+        "default": "mdi:eject"
+      },
+      "close_tray": {
+        "default": "mdi:eject-outline"
+      },
+      "restart_network": {
+        "default": "mdi:lan-pending"
+      },
+      "restart_ftp": {
+        "default": "mdi:folder-network"
+      },
+      "reload_dashboard": {
+        "default": "mdi:view-dashboard"
+      },
+      "microsoft_dashboard": {
+        "default": "mdi:microsoft-xbox"
+      },
+      "backup_saves": {
+        "default": "mdi:content-save-all"
+      },
+      "refresh_library": {
+        "default": "mdi:bookshelf"
+      }
     },
     "image": {
-      "cover": "mdi:image-album"
+      "cover": {
+        "default": "mdi:image-album"
+      }
     },
     "camera": {
-      "screen": "mdi:television-play"
+      "screen": {
+        "default": "mdi:television-play"
+      }
     },
     "remote": {
-      "controller": "mdi:controller-classic"
+      "controller": {
+        "default": "mdi:controller-classic"
+      }
     },
     "number": {
-      "screensaver_wait": "mdi:monitor-shimmer",
-      "auto_turn_off": "mdi:timer-power"
+      "screensaver_wait": {
+        "default": "mdi:monitor-shimmer"
+      },
+      "auto_turn_off": {
+        "default": "mdi:timer-power"
+      }
     },
     "select": {
-      "launch_game": "mdi:gamepad-variant",
-      "launch_app": "mdi:application"
+      "launch_game": {
+        "default": "mdi:gamepad-variant"
+      },
+      "launch_app": {
+        "default": "mdi:application"
+      }
     },
     "sensor": {
-      "activity": "mdi:microsoft-xbox",
-      "current_game": "mdi:gamepad-variant",
-      "last_game": "mdi:history",
-      "games": "mdi:disc",
-      "apps": "mdi:apps",
-      "saves": "mdi:content-save",
-      "dashboard": "mdi:view-dashboard",
-      "library_updated": "mdi:bookshelf",
-      "fan_speed": "mdi:fan",
-      "free_memory": "mdi:memory",
-      "xbmc_window": "mdi:kodi",
-      "xbmc_version": "mdi:kodi",
-      "free_c": "mdi:harddisk",
-      "free_e": "mdi:harddisk",
-      "free_f": "mdi:harddisk",
-      "free_g": "mdi:harddisk",
-      "free_x": "mdi:harddisk",
-      "free_y": "mdi:harddisk",
-      "free_z": "mdi:harddisk"
+      "activity": {
+        "default": "mdi:microsoft-xbox"
+      },
+      "current_game": {
+        "default": "mdi:gamepad-variant"
+      },
+      "last_game": {
+        "default": "mdi:history"
+      },
+      "games": {
+        "default": "mdi:disc"
+      },
+      "apps": {
+        "default": "mdi:apps"
+      },
+      "saves": {
+        "default": "mdi:content-save"
+      },
+      "dashboard": {
+        "default": "mdi:view-dashboard"
+      },
+      "library_updated": {
+        "default": "mdi:bookshelf"
+      },
+      "fan_speed": {
+        "default": "mdi:fan"
+      },
+      "free_memory": {
+        "default": "mdi:memory"
+      },
+      "xbmc_window": {
+        "default": "mdi:kodi"
+      },
+      "xbmc_version": {
+        "default": "mdi:kodi"
+      },
+      "free_c": {
+        "default": "mdi:harddisk"
+      },
+      "free_e": {
+        "default": "mdi:harddisk"
+      },
+      "free_f": {
+        "default": "mdi:harddisk"
+      },
+      "free_g": {
+        "default": "mdi:harddisk"
+      },
+      "free_x": {
+        "default": "mdi:harddisk"
+      },
+      "free_y": {
+        "default": "mdi:harddisk"
+      },
+      "free_z": {
+        "default": "mdi:harddisk"
+      }
     },
     "switch": {
-      "sntp": "mdi:clock-check",
-      "autolaunch_games": "mdi:disc-player",
-      "autolaunch_dvd": "mdi:movie-open",
-      "autolaunch_audiocd": "mdi:album",
-      "autolaunch_data": "mdi:disc",
-      "newsfeed": "mdi:newspaper",
-      "widescreen": "mdi:monitor",
-      "use_1080i": "mdi:television",
-      "fahrenheit": "mdi:thermometer"
+      "sntp": {
+        "default": "mdi:clock-check"
+      },
+      "autolaunch_games": {
+        "default": "mdi:disc-player"
+      },
+      "autolaunch_dvd": {
+        "default": "mdi:movie-open"
+      },
+      "autolaunch_audiocd": {
+        "default": "mdi:album"
+      },
+      "autolaunch_data": {
+        "default": "mdi:disc"
+      },
+      "newsfeed": {
+        "default": "mdi:newspaper"
+      },
+      "widescreen": {
+        "default": "mdi:monitor"
+      },
+      "use_1080i": {
+        "default": "mdi:television"
+      },
+      "fahrenheit": {
+        "default": "mdi:thermometer"
+      }
     }
   },
   "services": {

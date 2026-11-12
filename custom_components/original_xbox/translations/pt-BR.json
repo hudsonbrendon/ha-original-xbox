@@ -290,7 +290,7 @@
     },
     "upload_folder": {
       "name": "Enviar pasta (adicionar jogo)",
-      "description": "Copia uma pasta do HA para o Xbox, por padrão F:\\Games\\<nome da pasta>, e atualiza a biblioteca.",
+      "description": "Copia uma pasta do HA para o Xbox, por padrão F:\\Games\\ + nome da pasta, e atualiza a biblioteca.",
       "fields": {
         "source": {
           "name": "Pasta de origem",
@@ -298,7 +298,7 @@
         },
         "destination": {
           "name": "Destino",
-          "description": "Opcional. Padrão: F:\\Games\\<nome da pasta>."
+          "description": "Opcional. Padrão: F:\\Games\\ + nome da pasta."
         },
         "config_entry_id": {
           "name": "Xbox",
