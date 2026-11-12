@@ -1,11 +1,11 @@
-"""Testes dos parsers (sem Home Assistant): uv run --with pillow --with pytest pytest -q"""
+"""Parser tests (no Home Assistant): uv run --with pillow --with pytest pytest -q"""
 
 import io
+from pathlib import Path
 import struct
 import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components" / "xbox_classico"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components" / "original_xbox"))
 
 import api  # noqa: E402
 
@@ -31,7 +31,7 @@ CONFIG = (
 
 def test_drivestat():
     d = api.parse_drivestat(DRIVESTAT)
-    assert set(d) == {"C", "E", "F"}  # D (DVD) com total 0 some
+    assert set(d) == {"C", "E", "F"}  # D (DVD) with total 0 is dropped
     assert d["E"] == {"used": 4321.97, "free": 559.66, "total": 4881.63}
     assert d["F"]["total"] == 31564.63
 
@@ -74,7 +74,7 @@ def test_config_roundtrip_keeps_layout():
     new = api.set_config(new, "use_1080i", False)
     out = api.parse_config(new)
     assert out["sntp"] and out["sntp_server"] == "200.160.0.8" and out["auto_turn_off"] == 60 and not out["use_1080i"]
-    assert out["widescreen"] is True  # vizinho no mesmo elemento intacto
+    assert out["widescreen"] is True  # neighbour in the same element untouched
     assert new.count("\r\n") == CONFIG.count("\r\n") and len(new) - len(CONFIG) < 10
 
 
@@ -100,7 +100,7 @@ def _xbe(title: str, tid: int, image: bytes | None) -> bytes:
 def _xpr_dxt1(w=16, h=16) -> bytes:
     hdr = 0x800
     fmt = (0x0C << 8) | ((w.bit_length() - 1) << 20) | ((h.bit_length() - 1) << 24)
-    blk = struct.pack("<HHI", 0xF800, 0xF800, 0)  # bloco vermelho
+    blk = struct.pack("<HHI", 0xF800, 0xF800, 0)  # red block
     data = bytearray(hdr) + blk * ((w // 4) * (h // 4))
     data[:4] = b"XPR0"
     struct.pack_into("<II", data, 4, len(data), hdr)
@@ -136,21 +136,22 @@ def test_xbmc_parsers():
 
 def test_offline_activity():
     f = api.offline_activity
-    # XBMC some com porta muda + ping: segura como xbmc, vira travado após 5 min
+    # XBMC gone with a silent port + ping: held as xbmc, becomes frozen after 5 min
     assert f("xbmc", True, True, False, None, 1000) == ("xbmc", 1000)
     assert f("xbmc", True, True, False, 1000, 1200) == ("xbmc", 1000)
-    assert f("xbmc", True, True, False, 1000, 1300) == ("travado", 1000)
-    assert f("travado", True, True, False, 1000, 5000) == ("travado", 1000)
-    # vindo do dashboard (jogo aberto pelo controle) nunca vira travado
-    assert f("dashboard", True, True, False, None, 1000) == ("jogo", None)
-    # porta recusando / sem ping
-    assert f("xbmc", False, True, False, 1000, 2000) == ("jogo", None)
-    assert f("xbmc", True, False, False, 1000, 2000) == ("desligado", None)
-    assert f(None, False, False, True, None, 0) == ("jogo", None)
-    assert f("dashboard", False, False, False, None, 0) == ("desligado", None)
+    assert f("xbmc", True, True, False, 1000, 1300) == ("frozen", 1000)
+    assert f("frozen", True, True, False, 1000, 5000) == ("frozen", 1000)
+    # coming from the dashboard (game opened from the controller) never becomes frozen
+    assert f("dashboard", True, True, False, None, 1000) == ("game", None)
+    # port refusing / no ping
+    assert f("xbmc", False, True, False, 1000, 2000) == ("game", None)
+    assert f("xbmc", True, False, False, 1000, 2000) == ("off", None)
+    assert f(None, False, False, True, None, 0) == ("game", None)
+    assert f("dashboard", False, False, False, None, 0) == ("off", None)
 
 
 def test_script_output_and_source():
+    # captured from a Portuguese-language XBMC4Gamers ("Ocupado" = busy)
     text = (
         "nonce=ab12cd34\nsystem.cputemperature=56°C\nsystem.gputemperature=41°C\nsystem.fanspeed=40%\n"
         "system.hddtemperature=Ocupado\nsystem.freememory=33MB\nsystem.currentwindow=Programas\n"
@@ -159,7 +160,7 @@ def test_script_output_and_source():
     )
     raw = "nonce=x\r\nwindow.id=10001\r\nsystem.cputemperature=58\u00b0C\r\nsystem.currentwindow=\r\n".encode()
     w = api.parse_script_output(raw.decode("utf-8"))
-    assert w["cpu_temp"] == 58.0 and w["window"] == "Programas" and w["playing"] is None
+    assert w["cpu_temp"] == 58.0 and w["window"] == "Programs" and w["playing"] is None
     t = "nonce=y\nplayer.playing=1\nplayer.paused=1\nplayer.title=\nplayer.file=F:\\Music\\teste-ha.wav\nplayer.time_s=5\nplayer.total_s=90\n"
     p = api.parse_script_output(t)["playing"]
     assert p["Title"] == "teste-ha.wav" and p["Time"] == "00:05" and p["Duration"] == "01:30" and p["PlayStatus"] == "Paused"
@@ -169,8 +170,8 @@ def test_script_output_and_source():
     assert d["hdd_temp"] is None and d["free_memory"] == 33.0 and d["window"] == "Programas"
     assert d["xbox_version"] == "v1.6" and d["bios"] == "Evox M8 Plus (1.6)" and d["playing"] is None
     src = api.XBMC_SCRIPT
-    compile(src.replace("\r\n", "\n"), "ha_info.py", "exec")  # sintaxe válida (sem f-strings)
-    assert "E:\\\\TDATA\\\\ha_xbox_classico\\\\ha_info.txt" in src and f"v{api.SCRIPT_VERSION} " in src
+    compile(src.replace("\r\n", "\n"), "ha_info.py", "exec")  # valid syntax (no f-strings)
+    assert "E:\\\\TDATA\\\\ha_original_xbox\\\\ha_info.txt" in src and f"v{api.SCRIPT_VERSION} " in src
 
 
 def test_fatx_names():

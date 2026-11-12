@@ -1,4 +1,4 @@
-"""Xbox Clássico: Xbox original desbloqueado no Home Assistant pelo FTP do dashboard."""
+"""Original Xbox: a softmodded/modchipped Xbox in Home Assistant over the dashboard FTP."""
 
 from __future__ import annotations
 
@@ -7,12 +7,17 @@ import os
 import time
 import zipfile
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 from .api import XboxClient, XboxError, to_xbox_path
 from .const import DEFAULT_PASSWORD, DEFAULT_USERNAME, DOMAIN
@@ -52,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: XboxConfigEntry) -> bool
     )
     coordinator = XboxCoordinator(hass, entry, client)
     await coordinator.async_load()
-    # o Xbox passa a maior parte do tempo desligado ou em jogo: não falhar o setup por isso
+    # the Xbox is mostly off or in a game: do not fail setup because of that
     await coordinator.async_refresh()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -73,12 +78,12 @@ def _coordinator(hass: HomeAssistant, call: ServiceCall) -> XboxCoordinator:
     if entry_id := call.data.get(ATTR_ENTRY):
         entries = [e for e in entries if e.entry_id == entry_id]
     if not entries:
-        raise ServiceValidationError("nenhum Xbox Clássico configurado")
+        raise ServiceValidationError("no Original Xbox configured")
     return entries[0].runtime_data
 
 
 async def async_backup_saves(hass: HomeAssistant, coordinator: XboxCoordinator) -> str:
-    """Baixa E:\\UDATA inteiro para /config/backups/xbox_classico/saves-AAAAMMDD-HHMM.zip."""
+    r"""Download all of E:\UDATA to /config/backups/original_xbox/saves-YYYYMMDD-HHMM.zip."""
     folder = hass.config.path("backups", DOMAIN)
     path = os.path.join(folder, time.strftime("saves-%Y%m%d-%H%M.zip"))
 
@@ -94,148 +99,150 @@ async def async_backup_saves(hass: HomeAssistant, coordinator: XboxCoordinator) 
     try:
         count = await hass.async_add_executor_job(run)
     except XboxError as err:
-        raise HomeAssistantError(f"backup dos saves falhou: {err}") from err
-    return f"{path} ({count} arquivos)"
+        raise HomeAssistantError(f"saves backup failed: {err}") from err
+    return f"{path} ({count} files)"
 
 
 def _register_services(hass: HomeAssistant) -> None:
-    async def executar(call: ServiceCall) -> None:
+    async def launch(call: ServiceCall) -> None:
         coordinator = _coordinator(hass, call)
-        target = call.data["caminho"]
+        target = call.data["path"]
         item = coordinator.find_item(target)
         try:
             await coordinator.async_launch(item["path"] if item else to_xbox_path(target))
         except XboxError as err:
             raise HomeAssistantError(str(err)) from err
 
-    async def comando_site(call: ServiceCall) -> ServiceResponse:
+    async def site_command(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
         try:
-            reply = await coordinator.async_site(call.data["comando"], fire=False)
+            reply = await coordinator.async_site(call.data["command"], fire=False)
         except XboxError as err:
             raise HomeAssistantError(str(err)) from err
-        return {"resposta": reply}
+        return {"reply": reply}
 
-    async def enviar_arquivo(call: ServiceCall) -> None:
+    async def upload_file(call: ServiceCall) -> None:
         coordinator = _coordinator(hass, call)
-        origem = call.data["origem"]
-        if not hass.config.is_allowed_path(origem):
-            raise ServiceValidationError(f"{origem} não está em allowlist_external_dirs")
-        destino = call.data["destino"]
+        source = call.data["source"]
+        if not hass.config.is_allowed_path(source):
+            raise ServiceValidationError(f"{source} is not in allowlist_external_dirs")
+        destination = call.data["destination"]
 
         def run() -> None:
-            with open(origem, "rb") as f:
+            with open(source, "rb") as f:
                 data = f.read()
-            if destino.endswith(("\\", "/")):
-                target = destino + os.path.basename(origem)
+            if destination.endswith(("\\", "/")):
+                target = destination + os.path.basename(source)
             else:
-                target = destino
+                target = destination
             coordinator.client.mkdirs(target.replace("/", "\\").rsplit("\\", 1)[0])
             coordinator.client.write(target, data)
 
         try:
             await hass.async_add_executor_job(run)
         except (OSError, XboxError) as err:
-            raise HomeAssistantError(f"envio falhou: {err}") from err
+            raise HomeAssistantError(f"upload failed: {err}") from err
 
-    async def enviar_pasta(call: ServiceCall) -> ServiceResponse:
-        """Copia uma pasta do HA para o Xbox (ex.: um jogo para F:\\Games\\Nome) e atualiza a biblioteca."""
+    async def upload_folder(call: ServiceCall) -> ServiceResponse:
+        r"""Copy a folder from HA to the Xbox (e.g. a game to F:\Games\Name) and refresh the library."""
         coordinator = _coordinator(hass, call)
-        origem = call.data["origem"].rstrip("/")
-        if not hass.config.is_allowed_path(origem) or not os.path.isdir(origem):
-            raise ServiceValidationError(f"{origem} não é uma pasta em allowlist_external_dirs")
-        destino = call.data.get("destino") or f"F:\\Games\\{os.path.basename(origem)}"
+        source = call.data["source"].rstrip("/")
+        if not hass.config.is_allowed_path(source) or not await hass.async_add_executor_job(os.path.isdir, source):
+            raise ServiceValidationError(f"{source} is not a folder in allowlist_external_dirs")
+        destination = call.data.get("destination") or f"F:\\Games\\{os.path.basename(source)}"
         if coordinator.data and coordinator.data.get("activity") != "dashboard":
-            raise HomeAssistantError("o Xbox precisa estar no dashboard (UnleashX) para receber arquivos")
+            raise HomeAssistantError("the Xbox must be on the dashboard (UnleashX) to receive files")
         try:
-            files, total, skipped = await hass.async_add_executor_job(coordinator.client.upload_tree, origem, destino)
+            files, total, skipped = await hass.async_add_executor_job(
+                coordinator.client.upload_tree, source, destination
+            )
         except (OSError, XboxError) as err:
-            raise HomeAssistantError(f"envio da pasta falhou: {err}") from err
+            raise HomeAssistantError(f"folder upload failed: {err}") from err
         coordinator.async_start_scan()
-        return {"destino": destino, "arquivos": files, "bytes": total, "ignorados": skipped}
+        return {"destination": destination, "files": files, "bytes": total, "skipped": skipped}
 
-    async def baixar_arquivo(call: ServiceCall) -> ServiceResponse:
+    async def download_file(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
-        destino = call.data["destino"]
-        if not hass.config.is_allowed_path(destino):
-            raise ServiceValidationError(f"{destino} não está em allowlist_external_dirs")
+        destination = call.data["destination"]
+        if not hass.config.is_allowed_path(destination):
+            raise ServiceValidationError(f"{destination} is not in allowlist_external_dirs")
         try:
-            data = await hass.async_add_executor_job(coordinator.client.read, call.data["origem"])
+            data = await hass.async_add_executor_job(coordinator.client.read, call.data["source"])
         except XboxError as err:
-            raise HomeAssistantError(f"download falhou: {err}") from err
+            raise HomeAssistantError(f"download failed: {err}") from err
 
         def save() -> None:
-            os.makedirs(os.path.dirname(destino) or ".", exist_ok=True)
-            with open(destino, "wb") as f:
+            os.makedirs(os.path.dirname(destination) or ".", exist_ok=True)
+            with open(destination, "wb") as f:
                 f.write(data)
 
         await hass.async_add_executor_job(save)
-        return {"arquivo": destino, "bytes": len(data)}
+        return {"file": destination, "bytes": len(data)}
 
-    async def listar(call: ServiceCall) -> ServiceResponse:
+    async def list_folder(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
         try:
-            entries = await hass.async_add_executor_job(coordinator.client.listdir, call.data["caminho"])
+            entries = await hass.async_add_executor_job(coordinator.client.listdir, call.data["path"])
         except XboxError as err:
             raise HomeAssistantError(str(err)) from err
-        return {"itens": [{"nome": e.name, "pasta": e.is_dir, "bytes": e.size} for e in entries]}
+        return {"items": [{"name": e.name, "is_dir": e.is_dir, "size": e.size} for e in entries]}
 
-    async def xbmc_comando(call: ServiceCall) -> ServiceResponse:
+    async def xbmc_command(call: ServiceCall) -> ServiceResponse:
         coordinator = _coordinator(hass, call)
         try:
-            reply = await coordinator.async_xbmc(call.data["comando"], call.data.get("parametro"))
+            reply = await coordinator.async_xbmc(call.data["command"], call.data.get("parameter"))
         except XboxError as err:
             raise HomeAssistantError(str(err)) from err
-        return {"resposta": reply}
+        return {"reply": reply}
 
     async def backup_saves(call: ServiceCall) -> ServiceResponse:
-        return {"arquivo": await async_backup_saves(hass, _coordinator(hass, call))}
+        return {"file": await async_backup_saves(hass, _coordinator(hass, call))}
 
-    async def atualizar_biblioteca(call: ServiceCall) -> None:
+    async def refresh_library(call: ServiceCall) -> None:
         _coordinator(hass, call).async_start_scan()
 
     reg = hass.services.async_register
-    reg(DOMAIN, "executar", executar, vol.Schema({**SCHEMA_BASE, vol.Required("caminho"): cv.string}))
+    reg(DOMAIN, "launch", launch, vol.Schema({**SCHEMA_BASE, vol.Required("path"): cv.string}))
     reg(
         DOMAIN,
-        "comando_site",
-        comando_site,
-        vol.Schema({**SCHEMA_BASE, vol.Required("comando"): cv.string}),
+        "site_command",
+        site_command,
+        vol.Schema({**SCHEMA_BASE, vol.Required("command"): cv.string}),
         supports_response=SupportsResponse.ONLY,
     )
     reg(
         DOMAIN,
-        "enviar_arquivo",
-        enviar_arquivo,
-        vol.Schema({**SCHEMA_BASE, vol.Required("origem"): cv.string, vol.Required("destino"): cv.string}),
+        "upload_file",
+        upload_file,
+        vol.Schema({**SCHEMA_BASE, vol.Required("source"): cv.string, vol.Required("destination"): cv.string}),
     )
     reg(
         DOMAIN,
-        "enviar_pasta",
-        enviar_pasta,
-        vol.Schema({**SCHEMA_BASE, vol.Required("origem"): cv.string, vol.Optional("destino"): cv.string}),
+        "upload_folder",
+        upload_folder,
+        vol.Schema({**SCHEMA_BASE, vol.Required("source"): cv.string, vol.Optional("destination"): cv.string}),
         supports_response=SupportsResponse.OPTIONAL,
     )
     reg(
         DOMAIN,
-        "baixar_arquivo",
-        baixar_arquivo,
-        vol.Schema({**SCHEMA_BASE, vol.Required("origem"): cv.string, vol.Required("destino"): cv.string}),
+        "download_file",
+        download_file,
+        vol.Schema({**SCHEMA_BASE, vol.Required("source"): cv.string, vol.Required("destination"): cv.string}),
         supports_response=SupportsResponse.OPTIONAL,
     )
     reg(
         DOMAIN,
-        "listar",
-        listar,
-        vol.Schema({**SCHEMA_BASE, vol.Required("caminho"): cv.string}),
+        "list_folder",
+        list_folder,
+        vol.Schema({**SCHEMA_BASE, vol.Required("path"): cv.string}),
         supports_response=SupportsResponse.ONLY,
     )
     reg(
         DOMAIN,
-        "xbmc_comando",
-        xbmc_comando,
-        vol.Schema({**SCHEMA_BASE, vol.Required("comando"): cv.string, vol.Optional("parametro"): cv.string}),
+        "xbmc_command",
+        xbmc_command,
+        vol.Schema({**SCHEMA_BASE, vol.Required("command"): cv.string, vol.Optional("parameter"): cv.string}),
         supports_response=SupportsResponse.OPTIONAL,
     )
     reg(DOMAIN, "backup_saves", backup_saves, vol.Schema(SCHEMA_BASE), supports_response=SupportsResponse.OPTIONAL)
-    reg(DOMAIN, "atualizar_biblioteca", atualizar_biblioteca, vol.Schema(SCHEMA_BASE))
+    reg(DOMAIN, "refresh_library", refresh_library, vol.Schema(SCHEMA_BASE))

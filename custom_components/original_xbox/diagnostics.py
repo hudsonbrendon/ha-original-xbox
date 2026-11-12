@@ -1,4 +1,4 @@
-"""Diagnóstico baixável: estado, discos, config do dashboard e biblioteca (sem senha)."""
+"""Downloadable diagnostics: state, drives, dashboard config and library (no password)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Imagem com a capa do jogo atual (ou do último jogado)."""
+"""Image with the cover of the current game (or the last one played)."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class XboxCover(XboxEntity, ImageEntity):
     _attr_content_type = "image/png"
 
     def __init__(self, hass: HomeAssistant, coordinator) -> None:
-        XboxEntity.__init__(self, coordinator, "capa")
+        XboxEntity.__init__(self, coordinator, "cover")
         ImageEntity.__init__(self, hass)
         self._tid: str | None = None
         self._update_tid()
@@ -50,12 +50,12 @@ class XboxCover(XboxEntity, ImageEntity):
     @property
     def extra_state_attributes(self) -> dict:
         item = self._pick() or {}
-        return {"jogo": item.get("name"), "title_id": self._tid}
+        return {"game": item.get("name"), "title_id": self._tid}
 
     async def async_image(self) -> bytes | None:
         item = self._pick() or {}
         png = await self.coordinator.async_cover(self._tid, item.get("path"))
-        if png is None:  # sem capa: logo do Xbox em vez de erro 500 no proxy
+        if png is None:  # no cover: Xbox logo instead of a 500 error in the proxy
             png = await self.hass.async_add_executor_job(_fallback)
         return png
 

@@ -1,4 +1,4 @@
-"""Selects para abrir um jogo ou aplicativo direto do dashboard."""
+"""Selects to launch a game or app straight from the dashboard."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .api import XboxError
 from .const import ACT_DASHBOARD, CAT_APPS, CAT_GAMES
 from .entity import XboxControlEntity
 
-KEYS = {"abrir_jogo": CAT_GAMES, "abrir_aplicativo": CAT_APPS}
+KEYS = {"launch_game": CAT_GAMES, "launch_app": CAT_APPS}
 
 
 async def async_setup_entry(
@@ -41,7 +41,7 @@ class XboxLaunchSelect(XboxControlEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         item = next((i for i in self._items if i["name"] == option), None)
         if item is None:
-            raise HomeAssistantError(f"não está na biblioteca: {option}")
+            raise HomeAssistantError(f"not in the library: {option}")
         try:
             await self.coordinator.async_launch(item["path"])
         except XboxError as err:

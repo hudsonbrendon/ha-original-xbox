@@ -1,4 +1,4 @@
-"""Sensores: atividade, jogo atual/último, discos, biblioteca, saves e dashboard."""
+"""Sensors: activity, current/last game, drives, library, saves and dashboard."""
 
 from __future__ import annotations
 
@@ -13,16 +13,22 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfInformation, UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfInformation,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import XboxConfigEntry
-from .const import ACTIVITIES, ACT_DASHBOARD, CAT_APPS, CAT_GAMES
+from .const import ACT_DASHBOARD, ACTIVITIES, CAT_APPS, CAT_GAMES
 from .coordinator import XboxCoordinator
 from .entity import XboxEntity, XboxXbmcEntity
 
-# drives de disco: C sistema, E dados/saves, F/G extras, X/Y/Z cache de jogos
+# disk drives: C system, E data/saves, F/G extra, X/Y/Z game cache
 DRIVE_KEYS = ["c", "e", "f", "g", "x", "y", "z"]
 
 
@@ -47,60 +53,60 @@ def _items(c: XboxCoordinator, cat: str) -> list[dict]:
 
 SENSORS: list[XboxSensorDescription] = [
     XboxSensorDescription(
-        key="atividade",
+        key="activity",
         device_class=SensorDeviceClass.ENUM,
         options=ACTIVITIES,
         value=lambda c: (c.data or {}).get("activity"),
     ),
     XboxSensorDescription(
-        key="jogo_atual",
+        key="current_game",
         value=lambda c: (_current(c) or {}).get("name"),
         attrs=lambda c: {
-            "caminho": (_current(c) or {}).get("path"),
+            "path": (_current(c) or {}).get("path"),
             "title_id": (_current(c) or {}).get("title_id"),
-            "inicio": _ts((_current(c) or {}).get("started")),
-            "aberto_pelo_ha": (_current(c) or {}).get("by_ha"),
+            "started": _ts((_current(c) or {}).get("started")),
+            "launched_by_ha": (_current(c) or {}).get("by_ha"),
         },
     ),
     XboxSensorDescription(
-        key="ultimo_jogo",
+        key="last_game",
         value=lambda c: (c.last or {}).get("name"),
         attrs=lambda c: {
-            "caminho": (c.last or {}).get("path"),
+            "path": (c.last or {}).get("path"),
             "title_id": (c.last or {}).get("title_id"),
-            "inicio": _ts((c.last or {}).get("started")),
-            "fim": _ts((c.last or {}).get("ended")),
+            "started": _ts((c.last or {}).get("started")),
+            "ended": _ts((c.last or {}).get("ended")),
         },
     ),
     XboxSensorDescription(
-        key="ultima_sessao",
+        key="last_session",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.MINUTES,
         value=lambda c: (c.last or {}).get("minutes"),
     ),
     XboxSensorDescription(
-        key="jogos",
+        key="games",
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="jogos",
+        native_unit_of_measurement="games",
         value=lambda c: len(_items(c, CAT_GAMES)),
-        attrs=lambda c: {"lista": [i["name"] for i in _items(c, CAT_GAMES)]},
+        attrs=lambda c: {"list": [i["name"] for i in _items(c, CAT_GAMES)]},
     ),
     XboxSensorDescription(
-        key="aplicativos",
+        key="apps",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement="apps",
         value=lambda c: len(_items(c, CAT_APPS)),
-        attrs=lambda c: {"lista": [i["name"] for i in _items(c, CAT_APPS)]},
+        attrs=lambda c: {"list": [i["name"] for i in _items(c, CAT_APPS)]},
     ),
     XboxSensorDescription(
         key="saves",
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="jogos",
+        native_unit_of_measurement="games",
         value=lambda c: sum(1 for s in c.saves if s["slots"]),
         attrs=lambda c: {s["name"]: s["slots"] for s in sorted(c.saves, key=lambda s: s["name"].casefold())},
     ),
     XboxSensorDescription(
-        key="biblioteca_atualizada",
+        key="library_updated",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         value=lambda c: _ts(c.library_at),
@@ -110,12 +116,12 @@ SENSORS: list[XboxSensorDescription] = [
         entity_category=EntityCategory.DIAGNOSTIC,
         value=lambda c: (c.system or "").replace("UNIX emulated by ", "") or None,
         attrs=lambda c: {
-            "caminho": c.dashboard_path,
-            "rede": c.config.get("network_type"),
-            "ventoinha": c.config.get("fan_speed"),
-            "dvd_ao_inserir": c.config.get("dvd_launch"),
-            "servidor_sntp": c.config.get("sntp_server"),
-            "ftp_max_usuarios": c.config.get("ftp_max_users"),
+            "path": c.dashboard_path,
+            "network": c.config.get("network_type"),
+            "fan_speed": c.config.get("fan_speed"),
+            "dvd_autolaunch": c.config.get("dvd_launch"),
+            "sntp_server": c.config.get("sntp_server"),
+            "ftp_max_users": c.config.get("ftp_max_users"),
         },
     ),
 ]
@@ -128,42 +134,42 @@ class XbmcSensorDescription(SensorEntityDescription):
 
 XBMC_SENSORS = [
     XbmcSensorDescription(
-        key="temperatura_gpu",
+        key="gpu_temperature",
         field="gpu_temp",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     XbmcSensorDescription(
-        key="temperatura_cpu",
+        key="cpu_temperature",
         field="cpu_temp",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     XbmcSensorDescription(
-        key="temperatura_hd",
+        key="hdd_temperature",
         field="hdd_temp",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     XbmcSensorDescription(
-        key="ventoinha",
+        key="fan_speed",
         field="fan",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
     ),
     XbmcSensorDescription(
-        key="memoria_livre",
+        key="free_memory",
         field="free_memory",
         device_class=SensorDeviceClass.DATA_SIZE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfInformation.MEGABYTES,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    XbmcSensorDescription(key="tela_xbmc", field="window"),
-    XbmcSensorDescription(key="versao_xbmc", field="build", entity_category=EntityCategory.DIAGNOSTIC),
+    XbmcSensorDescription(key="xbmc_window", field="window"),
+    XbmcSensorDescription(key="xbmc_version", field="build", entity_category=EntityCategory.DIAGNOSTIC),
 ]
 
 
@@ -174,8 +180,8 @@ async def async_setup_entry(
     entities: list[SensorEntity] = [XboxSensor(coordinator, d) for d in SENSORS]
     entities += [XbmcSensor(coordinator, d) for d in XBMC_SENSORS]
     for drive in DRIVE_KEYS:
-        entities.append(XboxDriveSensor(coordinator, drive, "livre"))
-        entities.append(XboxDriveSensor(coordinator, drive, "uso"))
+        entities.append(XboxDriveSensor(coordinator, drive, "free"))
+        entities.append(XboxDriveSensor(coordinator, drive, "usage"))
     async_add_entities(entities)
 
 
@@ -196,7 +202,7 @@ class XboxSensor(XboxEntity, SensorEntity):
 
 
 class XboxDriveSensor(XboxEntity, SensorEntity):
-    """Livre (GB) e uso (%) de cada partição; mantém o último valor lido com o console fora do dashboard."""
+    """Free space (GB) and usage (%) of each partition; keeps the last read value off the dashboard."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -204,7 +210,7 @@ class XboxDriveSensor(XboxEntity, SensorEntity):
         super().__init__(coordinator, f"{kind}_{drive}")
         self._drive = drive.upper()
         self._kind = kind
-        if kind == "livre":
+        if kind == "free":
             self._attr_device_class = SensorDeviceClass.DATA_SIZE
             self._attr_native_unit_of_measurement = UnitOfInformation.GIGABYTES
             self._attr_suggested_display_precision = 2
@@ -224,7 +230,7 @@ class XboxDriveSensor(XboxEntity, SensorEntity):
         d = self.coordinator.drives.get(self._drive)
         if not d:
             return None
-        if self._kind == "livre":
+        if self._kind == "free":
             return round(d["free"] / 1024, 3)
         return round(100 * d["used"] / d["total"], 1)
 
@@ -233,11 +239,11 @@ class XboxDriveSensor(XboxEntity, SensorEntity):
         d = self.coordinator.drives.get(self._drive)
         if not d:
             return None
-        return {"usado_gb": round(d["used"] / 1024, 2), "total_gb": round(d["total"] / 1024, 2)}
+        return {"used_gb": round(d["used"] / 1024, 2), "total_gb": round(d["total"] / 1024, 2)}
 
 
 class XbmcSensor(XboxXbmcEntity, SensorEntity):
-    """Telemetria que só o XBMC expõe (HTTP API, ou script no XBMC4Gamers). Mantém o último valor."""
+    """Telemetry only XBMC exposes (HTTP API, or the script on XBMC4Gamers). Keeps the last value."""
 
     entity_description: XbmcSensorDescription
 
@@ -252,7 +258,7 @@ class XbmcSensor(XboxXbmcEntity, SensorEntity):
 
     @property
     def _telemetry(self) -> dict:
-        return self.data.get("telemetria") or {}
+        return self.data.get("telemetry") or {}
 
     @property
     def native_value(self) -> Any:

@@ -1,33 +1,33 @@
-"""Coordinator: estado pelo FTP do dashboard + ping; biblioteca, saves e capas em cache."""
+"""Coordinator: state from the dashboard FTP + ping; library, saves and covers cached."""
 
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 import os
 import socket
 import time
-from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.storage import Store
-from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .api import (
     APP_AVALAUNCH,
     APP_DASHBOARD,
     APP_EVOX,
     APP_XBMC,
+    FTP_APPS,
     XbmcClient,
     XboxClient,
     XboxError,
     XboxHung,
-    FTP_APPS,
     XboxOffline,
     offline_activity,
-    parse_duration,
     parse_config,
+    parse_duration,
     set_config,
 )
 from .const import (
@@ -35,10 +35,10 @@ from .const import (
     ACT_DASHBOARD,
     ACT_EVOX,
     ACT_GAME,
-    ACT_HUNG,
-    ACT_OFF,
     ACT_OTHER,
     ACT_XBMC,
+    CAT_APPS,
+    CAT_GAMES,
     CONF_DASHBOARD,
     CONFIG_PATH,
     CONFIG_REFRESH_SECONDS,
@@ -88,8 +88,8 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._xbmc_system: dict = {}
         self._xbmc_system_at = 0.0
         self._script_ok = False
-        self._script_next = 0.0  # próxima execução do ha_info.py
-        self.console_info: dict = {}  # versão do Xbox, BIOS, kernel (do script no XBMC)
+        self._script_next = 0.0  # next ha_info.py run
+        self.console_info: dict = {}  # Xbox version, BIOS, kernel (from the XBMC script)
         self._quiet_until = 0.0
         self._silent_since: float | None = None
         self.library: list[dict] = []
@@ -98,8 +98,8 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.config: dict[str, Any] = {}
         self.drives: dict[str, dict[str, float]] = {}
         self.system: str | None = None
-        self.current: dict | None = None  # jogo/app lançado pelo HA e ainda rodando
-        self.last: dict | None = None  # última sessão encerrada
+        self.current: dict | None = None  # game/app launched by HA and still running
+        self.last: dict | None = None  # last finished session
         self.library_at = 0.0
         self._drives_at = 0.0
         self._config_at = 0.0
@@ -113,11 +113,12 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def dashboard_path(self) -> str:
         return self.config_entry.options.get(CONF_DASHBOARD, DEFAULT_DASHBOARD)
 
-    # ------------------------------------------------------------ persistência
+    # ------------------------------------------------------------ persistence
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
-        self.library = data.get("library", [])
+        legacy = {"jogos": CAT_GAMES, "aplicativos": CAT_APPS}  # categories stored before the rename
+        self.library = [{**i, "category": legacy.get(i.get("category"), i.get("category"))} for i in data.get("library", [])]
         self.saves = data.get("saves", [])
         self.last = data.get("last")
         self.current = data.get("current")
@@ -143,7 +144,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         if time.time() < self._quiet_until and self.data:
-            # logo depois de lançar/reiniciar: não tocar no console enquanto o app fecha
+            # right after launching/restarting: do not touch the console while the app closes
             return {**self.data, "at": dt_util.utcnow()}
         hung = False
         try:
@@ -153,7 +154,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except XboxOffline:
             probe = None
         except XboxError as err:
-            LOGGER.debug("FTP respondeu mas falhou: %s", err)
+            LOGGER.debug("FTP answered but failed: %s", err)
             probe = None
 
         now = time.time()
@@ -163,7 +164,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._end_session(now)
             prev = (self.data or {}).get("activity")
             if self.current and self.current.get("activity") in FTP_APPS:
-                prev = self.current["activity"]  # sessão aberta num app com FTP (ex.: XBMC)
+                prev = self.current["activity"]  # session open in an app with FTP (e.g. XBMC)
             activity, self._silent_since = offline_activity(
                 prev, hung, ping, self.current is not None, self._silent_since, now
             )
@@ -177,15 +178,15 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._end_session(now)
             await self._refresh_dashboard_extras(now)
         elif self.current and self.current.get("activity") == ACT_GAME and self.current.get("by_ha"):
-            # o app que o HA abriu subiu o FTP dele (ex.: XBMC): mesma sessão
+            # the app HA launched brought up its own FTP (e.g. XBMC): same session
             self.current["activity"] = activity
             self._save()
         elif self.current is None or self.current.get("activity") != activity:
-            # app com FTP próprio aberto pelo controle (ou trocado depois do lançamento)
+            # app with its own FTP opened from the controller (or switched after launch)
             if self.current:
                 self._end_session(now)
             self.current = {
-                "name": APP_NAMES.get(activity, "Aplicativo"),
+                "name": APP_NAMES.get(activity, "App"),
                 "path": None,
                 "title_id": None,
                 "started": now,
@@ -204,23 +205,24 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._xbmc_system = {**self._xbmc_system, "window": status.get("window")}
                 self.xbmc_status = {**status, **self._xbmc_system}
             except XboxError as err:
-                LOGGER.debug("HTTP do XBMC indisponível (webserver ligado?): %s", err)
+                LOGGER.debug("XBMC HTTP unavailable (webserver enabled?): %s", err)
                 if now >= self._script_next:
                     await self._xbmc_script_telemetry(now)
         return self._data(True, True, activity, probe)
 
     async def _xbmc_script_telemetry(self, now: float) -> None:
-        """XBMC sem servidor web (XBMC4Gamers): telemetria pelo ha_info.py via SITE RunScript.
+        """XBMC without a web server (XBMC4Gamers): telemetry from ha_info.py via SITE RunScript.
 
-        Rodar o script várias vezes com mídia tocando derrubou o console 3 de 3 vezes
-        (XBMC4Gamers 3.6, ~33 MB livres); uma execução isolada foi segura. Então, com mídia
-        tocando, a próxima leitura só acontece depois do fim previsto da faixa."""
+        Running the script repeatedly with media playing crashed the console 3 times out of 3
+        (XBMC4Gamers 3.6, ~33 MB free); a single run was safe. So, with media playing, the
+        next read only happens after the expected end of the track.
+        """
         self._xbmc_system_at = now
         self._script_next = now + XBMC_SYSTEM_SECONDS
         try:
             info = await self.hass.async_add_executor_job(self.client.run_xbmc_script, not self.console_info)
         except XboxError as err:
-            LOGGER.debug("telemetria por script falhou: %s", err)
+            LOGGER.debug("script telemetry failed: %s", err)
             return
         self._xbmc_system = {
             k: info.get(k)
@@ -257,7 +259,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "current": self.current,
             "last": self.last,
             "xbmc": self.xbmc_status if activity == ACT_XBMC else None,
-            "telemetria": self._xbmc_system if activity == ACT_XBMC else None,
+            "telemetry": self._xbmc_system if activity == ACT_XBMC else None,
             "at": dt_util.utcnow(),
         }
 
@@ -267,13 +269,13 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self.hass.async_add_executor_job(self.client.ensure_script)
                 self._script_ok = True
             except XboxError as err:
-                LOGGER.debug("não instalou o script de telemetria: %s", err)
+                LOGGER.debug("could not install the telemetry script: %s", err)
         if now - self._drives_at > DRIVES_REFRESH_SECONDS:
             try:
                 self.drives = await self.hass.async_add_executor_job(self.client.drivestat)
                 self._drives_at = now
             except XboxError as err:
-                LOGGER.debug("DRIVESTAT falhou: %s", err)
+                LOGGER.debug("DRIVESTAT failed: %s", err)
         if now - self._config_at > CONFIG_REFRESH_SECONDS:
             try:
                 raw = await self.hass.async_add_executor_job(self.client.read, CONFIG_PATH)
@@ -281,11 +283,11 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.config = parse_config(self.config_text)
                 self._config_at = now
             except XboxError as err:
-                LOGGER.debug("Config.xml falhou: %s", err)
+                LOGGER.debug("Config.xml failed: %s", err)
         if now - self.library_at > LIBRARY_REFRESH_SECONDS and not self.scanning:
             self.async_start_scan()
 
-    # ------------------------------------------------------------ sessões
+    # ------------------------------------------------------------ sessions
 
     def _end_session(self, now: float) -> None:
         cur = self.current
@@ -306,20 +308,20 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._xbmc_system_at = 0.0
 
     async def async_launch(self, path: str) -> None:
-        """SITE EXEC: o dashboard fecha e o XBE abre (o FTP cai até voltar ao dashboard)."""
+        """SITE EXEC: the dashboard closes and the XBE opens (FTP is down until back on the dashboard)."""
         activity = (self.data or {}).get("activity")
         item = self.find_item(path) or {"name": path.rsplit("\\", 1)[-1], "path": path, "title_id": None}
         if activity == ACT_XBMC and self.xbmc_status is not None:
             reply = await self.hass.async_add_executor_job(self.xbmc.builtin, f"XBMC.RunXBE({item['path']})")
         elif activity == ACT_XBMC:
-            # sem servidor web (ex.: XBMC4Gamers): built-in pelo SITE do FTP do XBMC
+            # no web server (e.g. XBMC4Gamers): built-in via the XBMC FTP SITE command
             reply = await self.hass.async_add_executor_job(self.client.site_fire, f"RunXBE({item['path']})")
         elif activity == ACT_DASHBOARD:
             reply = await self.hass.async_add_executor_job(self.client.execute, item["path"])
         else:
-            raise XboxError("o Xbox precisa estar no dashboard (ou no XBMC com o servidor web) para abrir jogos")
+            raise XboxError("the Xbox must be on the dashboard (or in XBMC with the web server) to launch games")
         if "fail" in reply.lower() or reply.startswith("5"):
-            raise XboxError(f"Xbox recusou: {reply}")
+            raise XboxError(f"Xbox refused: {reply}")
         self.quiet()
         now = time.time()
         is_dash = item["path"].casefold() == self.dashboard_path.casefold()
@@ -336,7 +338,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.async_set_updated_data(self._data(False, True, ACT_GAME if not is_dash else ACT_DASHBOARD, None))
 
     async def async_power(self, command: str) -> None:
-        """REBOOT/SHUTDOWN/POWERCYCLE pelo UnleashX ou pelo XBMC, conforme quem está aberto."""
+        """REBOOT/SHUTDOWN/POWERCYCLE via UnleashX or XBMC, whichever is running."""
         activity = (self.data or {}).get("activity")
         if activity == ACT_XBMC and self.xbmc_status is not None:
             builtin = {"POWERCYCLE": "XBMC.Reboot", "REBOOT": "XBMC.Reboot", "SHUTDOWN": "XBMC.Shutdown"}[command]
@@ -350,9 +352,9 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.async_site(command, fire=True)
             self.quiet()
         else:
-            raise XboxError("comando indisponível: o Xbox não está no dashboard nem no XBMC")
+            raise XboxError("command unavailable: the Xbox is neither on the dashboard nor in XBMC")
 
-    # comando -> (HTTP API, parâmetro?) | built-in pelo SITE do FTP do XBMC
+    # command -> (HTTP API, parameter?) | built-in via the XBMC FTP SITE command
     _MEDIA = {
         "pause": ("Pause", "PlayerControl(Play)"),
         "stop": ("Stop", "PlayerControl(Stop)"),
@@ -364,17 +366,17 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     }
 
     async def async_media(self, action: str, value: int | None = None) -> None:
-        """Controle de mídia no XBMC: HTTP API se houver, senão SITE do FTP (XBMC4Gamers)."""
+        """Media control in XBMC: HTTP API if available, else the FTP SITE command (XBMC4Gamers)."""
         if (self.data or {}).get("activity") != ACT_XBMC:
-            raise XboxError("o XBMC não está aberto")
+            raise XboxError("XBMC is not running")
         http, site = self._MEDIA[action]
         if self.xbmc_status is not None:
             await self.async_xbmc(http, None if value is None else str(value))
             return
         if site is None:
-            raise XboxError("sem o servidor web do XBMC não dá para pular para uma posição")
+            raise XboxError("seeking needs the XBMC web server")
         await self.async_site(site.format(value))
-        # sem reler pelo script (arriscado com mídia tocando): atualiza o estado na hora
+        # no script re-read (risky with media playing): update the state right away
         playing = dict(self._xbmc_system.get("playing") or {})
         if action == "stop":
             playing = {}
@@ -382,21 +384,21 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif action == "pause" and playing:
             playing["PlayStatus"] = "Playing" if playing.get("PlayStatus") == "Paused" else "Paused"
         elif action in ("next", "previous"):
-            self._script_next = time.time() + 5  # uma leitura para pegar a faixa nova
+            self._script_next = time.time() + 5  # one read to pick up the new track
         self._xbmc_system = {**self._xbmc_system, "playing": playing or None}
         if self.data:
-            self.async_set_updated_data({**self.data, "telemetria": self._xbmc_system})
+            self.async_set_updated_data({**self.data, "telemetry": self._xbmc_system})
 
     async def async_xbmc(self, command: str, parameter: str | None = None) -> str:
         if (self.data or {}).get("activity") != ACT_XBMC:
-            raise XboxError("o XBMC não está aberto")
+            raise XboxError("XBMC is not running")
         return " ".join(await self.hass.async_add_executor_job(self.xbmc.lines, command, parameter))
 
     async def async_site(self, command: str, fire: bool = False) -> str:
         func = self.client.site_fire if fire else self.client.site
         return await self.hass.async_add_executor_job(func, command)
 
-    # ------------------------------------------------------------ biblioteca
+    # ------------------------------------------------------------ library
 
     @property
     def scanning(self) -> bool:
@@ -404,7 +406,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def async_start_scan(self) -> None:
         if self.scanning:
-            self._rescan = True  # pedido durante uma varredura: roda de novo ao terminar
+            self._rescan = True  # requested during a scan: run again when it finishes
             return
         self._scan_task = self.config_entry.async_create_background_task(
             self.hass, self._async_scan(), f"{DOMAIN}_scan"
@@ -416,7 +418,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             library = await self.hass.async_add_executor_job(self.client.scan_library, DEFAULT_ROOTS, known)
             saves = await self.hass.async_add_executor_job(self.client.saves)
         except XboxError as err:
-            LOGGER.info("varredura da biblioteca interrompida: %s", err)
+            LOGGER.info("library scan interrupted: %s", err)
             return
         seen: set[str] = set()
         self.library = [i for i in library if not (i["path"].casefold() in seen or seen.add(i["path"].casefold()))]
@@ -428,13 +430,13 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 break
             if item.get("title_id") and item["title_id"] not in self._covers:
                 await self.async_cover(item["title_id"], item["path"])
-        LOGGER.info("biblioteca do Xbox: %d itens, %d pastas de save", len(self.library), len(saves))
+        LOGGER.info("Xbox library: %d items, %d save folders", len(self.library), len(saves))
         self.async_update_listeners()
         if self._rescan:
             self._rescan = False
             self.hass.async_create_task(self._async_scan(), f"{DOMAIN}_rescan")
 
-    # ------------------------------------------------------------ capas
+    # ------------------------------------------------------------ covers
 
     async def async_cover(self, title_id: str | None, xbe_path: str | None = None) -> bytes | None:
         if not title_id:
@@ -449,7 +451,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 png = await self.hass.async_add_executor_job(self.client.title_image, title_id, xbe_path)
             except XboxError as err:
-                LOGGER.debug("capa %s falhou: %s", title_id, err)
+                LOGGER.debug("cover %s failed: %s", title_id, err)
                 return None
             if png:
                 await self.hass.async_add_executor_job(_write_file, file, png)
@@ -460,7 +462,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_set_config(self, key: str, value: Any) -> None:
         if (self.data or {}).get("activity") != ACT_DASHBOARD:
-            raise XboxError("o Xbox precisa estar no dashboard para mudar a configuração")
+            raise XboxError("the Xbox must be on the dashboard to change settings")
         raw = await self.hass.async_add_executor_job(self.client.read, CONFIG_PATH)
         text = raw.decode("utf-8", "replace")
         if key == "sntp" and value:
@@ -474,7 +476,7 @@ class XboxCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.hass.async_add_executor_job(self.client.write, CONFIG_PATH, new.encode("utf-8"))
         self.config_text = new
         self.config = parse_config(new)
-        # o UnleashX só relê o Config.xml ao abrir: recarrega o dashboard
+        # UnleashX only re-reads Config.xml on start: reload the dashboard
         await self.hass.async_add_executor_job(self.client.execute, self.dashboard_path)
         self.quiet()
         self.async_update_listeners()

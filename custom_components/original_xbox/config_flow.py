@@ -1,22 +1,33 @@
-"""Config flow do Xbox Clássico."""
+"""Config flow for the Original Xbox integration."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+import voluptuous as vol
 
 from .api import APP_OTHER, XboxClient, XboxError, XboxOffline
-from .const import CONF_DASHBOARD, DEFAULT_DASHBOARD, DEFAULT_PASSWORD, DEFAULT_USERNAME, DOMAIN
+from .const import (
+    CONF_DASHBOARD,
+    DEFAULT_DASHBOARD,
+    DEFAULT_PASSWORD,
+    DEFAULT_USERNAME,
+    DOMAIN,
+)
 
 
 def _arp_mac(host: str) -> str | None:
-    """MAC pela tabela ARP do host do HA (o container usa a rede do host)."""
+    """MAC from the HA host ARP table (the container uses host networking)."""
     try:
         with open("/proc/net/arp", encoding="ascii") as f:
             for line in f.readlines()[1:]:
@@ -71,7 +82,7 @@ class XboxConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(mac or self.unique_id or f"xbox_{host}")
                 self._abort_if_unique_id_configured(updates={CONF_HOST: host})
                 return self.async_create_entry(
-                    title="Xbox Clássico",
+                    title="Original Xbox",
                     data={
                         CONF_HOST: host,
                         CONF_USERNAME: user_input[CONF_USERNAME],

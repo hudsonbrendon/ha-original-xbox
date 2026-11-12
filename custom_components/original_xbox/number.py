@@ -1,4 +1,4 @@
-"""Números do Config.xml: proteção de tela e desligamento automático."""
+"""Config.xml numbers: screensaver wait and auto turn-off."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from . import XboxConfigEntry
 from .api import XboxError
 from .entity import XboxDashboardEntity
 
-# chave -> (mín, máx, passo, unidade)
+# key -> (min, max, step, unit)
 NUMBERS = {
     "screensaver_wait": (0, 3600, 10, UnitOfTime.SECONDS),
     "auto_turn_off": (0, 600, 5, UnitOfTime.MINUTES),

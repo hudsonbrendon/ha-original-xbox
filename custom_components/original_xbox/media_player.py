@@ -1,4 +1,4 @@
-"""Media player: estado do console, jogo atual com capa, abrir jogos e navegar na biblioteca."""
+"""Media player: console state, current game with cover, launching games and browsing the library."""
 
 from __future__ import annotations
 
@@ -16,11 +16,19 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import XboxConfigEntry
 from .api import XboxError, parse_duration
-from .const import ACT_DASHBOARD, ACT_HUNG, ACT_OFF, ACT_XBMC, CAT_APPS, CAT_GAMES, MS_DASHBOARD
+from .const import (
+    ACT_DASHBOARD,
+    ACT_HUNG,
+    ACT_OFF,
+    ACT_XBMC,
+    CAT_APPS,
+    CAT_GAMES,
+    MS_DASHBOARD,
+)
 from .entity import XboxEntity
 
 ROOT = "root"
-CATEGORY_TITLES = {CAT_GAMES: "Jogos", CAT_APPS: "Aplicativos"}
+CATEGORY_TITLES = {CAT_GAMES: "Games", CAT_APPS: "Apps"}
 
 
 async def async_setup_entry(
@@ -54,7 +62,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
     def supported_features(self) -> MediaPlayerEntityFeature:
         if self.data.get("xbmc") is not None:
             return self.BASE | self.XBMC
-        if self._xbmc is not None:  # XBMC sem HTTP: controles pelo FTP, sem seek nem volume lido
+        if self._xbmc is not None:  # XBMC without HTTP: controls via FTP, no seek and no volume readback
             return self.BASE | (self.XBMC & ~MediaPlayerEntityFeature.SEEK)
         return self.BASE
 
@@ -62,7 +70,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
     def _xbmc(self) -> dict | None:
         if self.data.get("activity") != ACT_XBMC:
             return None
-        return self.data.get("xbmc") or self.data.get("telemetria") or ({} if self.data.get("online") else None)
+        return self.data.get("xbmc") or self.data.get("telemetry") or ({} if self.data.get("online") else None)
 
     @property
     def _playing(self) -> dict:
@@ -91,7 +99,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
     @property
     def media_title(self) -> str | None:
         if self.data.get("activity") == ACT_HUNG:
-            return "Travado (religue no botão)"
+            return "Frozen (restart it with the power button)"
         p = self._playing
         if p:
             return p.get("Title") or p.get("Filename", "").replace("\\", "/").rsplit("/", 1)[-1]
@@ -99,9 +107,9 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
         if cur:
             return cur["name"]
         if self.data.get("activity") == ACT_HUNG:
-            return "Travado (religue no botão)"
+            return "Frozen (restart it with the power button)"
         if self.state == MediaPlayerState.PLAYING:
-            return "Jogo ou aplicativo"
+            return "Game or app"
         return "Dashboard" if self.in_dashboard else None
 
     @property
@@ -159,16 +167,16 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
     def extra_state_attributes(self) -> dict:
         cur = self._current or {}
         return {
-            "atividade": self.data.get("activity"),
-            "caminho": cur.get("path"),
+            "activity": self.data.get("activity"),
+            "path": cur.get("path"),
             "title_id": cur.get("title_id"),
-            "aberto_pelo_ha": cur.get("by_ha"),
+            "launched_by_ha": cur.get("by_ha"),
         }
 
     async def async_select_source(self, source: str) -> None:
         item = self.coordinator.find_item(source)
         if item is None:
-            raise HomeAssistantError(f"não está na biblioteca: {source}")
+            raise HomeAssistantError(f"not in the library: {source}")
         await self._run(self.coordinator.async_launch(item["path"]))
 
     async def async_play_media(self, media_type: str, media_id: str, **kwargs) -> None:
@@ -202,7 +210,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
         if duration:
             await self._run(self.coordinator.async_media("seek", round(100 * position / duration)))
 
-    async def async_turn_off(self) -> None:  # noqa: F811 - funciona do UnleashX e do XBMC
+    async def async_turn_off(self) -> None:  # works from UnleashX and XBMC
         await self._run(self.coordinator.async_power("SHUTDOWN"))
 
     async def _run(self, coro) -> None:
@@ -212,7 +220,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
             raise HomeAssistantError(str(err)) from err
         await self.coordinator.async_request_refresh()
 
-    # ------------------------------------------------------------ navegação
+    # ------------------------------------------------------------ browsing
 
     async def async_browse_media(
         self, media_content_type: str | None = None, media_content_id: str | None = None
@@ -259,7 +267,7 @@ class XboxMediaPlayer(XboxEntity, MediaPlayerEntity):
         ]
         children.append(
             BrowseMedia(
-                title="Dashboard da Microsoft",
+                title="Microsoft Dashboard",
                 media_class=MediaClass.APP,
                 media_content_type=MediaType.APP,
                 media_content_id=MS_DASHBOARD,

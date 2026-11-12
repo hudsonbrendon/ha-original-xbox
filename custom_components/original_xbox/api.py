@@ -1,13 +1,16 @@
-"""Cliente do Xbox clássico desbloqueado via FTP do dashboard (UnleashX/XBMC/Avalaunch).
+r"""Client for a modded original Xbox over the dashboard FTP (UnleashX/XBMC/Avalaunch).
 
-Sem dependências do Home Assistant: tudo síncrono (ftplib), chamado em executor.
-Comandos SITE achados por engenharia reversa do UnleashX 0.37.1218A (C:\\evoxdash.xbe):
+No Home Assistant dependencies: everything is synchronous (ftplib) and runs in an executor.
+SITE commands found by reverse engineering UnleashX 0.37.1218A (C:\evoxdash.xbe):
 REBOOT, RESTART, SHUTDOWN, POWERCYCLE, FTPRESET, FTPSTOP, NETRESET, TRAYOPEN/EJECT,
-TRAYCLOSE, DRIVESTAT, EXEC/LAUNCH <xbe>, MD5 <arquivo>, XBERENAME, FREESPACE <drive>.
+TRAYCLOSE, DRIVESTAT, EXEC/LAUNCH <xbe>, MD5 <file>, XBERENAME, FREESPACE <drive>.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 import ftplib
 import io
 import posixpath
@@ -15,9 +18,6 @@ import re
 import socket
 import struct
 import threading
-from collections.abc import Iterator
-from contextlib import contextmanager
-from dataclasses import dataclass
 
 TIMEOUT = 8
 
@@ -25,20 +25,22 @@ APP_DASHBOARD = "unleashx"
 APP_XBMC = "xbmc"
 APP_AVALAUNCH = "avalaunch"
 APP_EVOX = "evox"
-APP_OTHER = "outro"
+APP_OTHER = "other"
 
 
 class XboxError(Exception):
-    """Falha falando com o Xbox."""
+    """Failure talking to the Xbox."""
 
 
 class XboxOffline(XboxError):
-    """Sem FTP: console desligado, em jogo ou fora da rede."""
+    """No FTP: console off, in a game or off the network."""
 
 
 class XboxHung(XboxOffline):
-    """Porta 21 muda (timeout, sem recusa): conexão sem banner ou SYN sem resposta.
-    Com ping respondendo e vindo do XBMC, é o congelamento do XBMC 2.0 (visto em 11/11/2026)."""
+    """Port 21 silent (timeout, not refused): connection with no banner or unanswered SYN.
+
+    With ping answering and coming from XBMC, this is the XBMC 2.0 freeze (seen on 2026-11-11).
+    """
 
 
 @dataclass(frozen=True)
@@ -48,26 +50,26 @@ class Entry:
     size: int
 
 
-FTP_APPS = ("xbmc", "avalaunch", "evox", "outro_app", "travado")
+FTP_APPS = ("xbmc", "avalaunch", "evox", "other_app", "frozen")
 HUNG_AFTER_SECONDS = 300
 
 
 def offline_activity(
     prev: str | None, silent: bool, ping: bool, launched: bool, silent_since: float | None, now: float
 ) -> tuple[str, float | None]:
-    """Atividade com o FTP fora do ar -> (atividade, silent_since).
+    """Activity while the FTP is down -> (activity, silent_since).
 
-    silent = porta 21 muda (timeout, não recusa). Travado só quando vinha de um app com FTP
-    (XBMC & cia.), o ping responde e o silêncio dura HUNG_AFTER_SECONDS; antes disso mantém o app.
+    silent = port 21 silent (timeout, not refused). Frozen only when coming from an app with FTP
+    (XBMC & co.), ping answers and the silence lasts HUNG_AFTER_SECONDS; until then keep the app.
     """
     if silent and ping and prev in FTP_APPS:
         silent_since = silent_since or now
         if now - silent_since >= HUNG_AFTER_SECONDS:
-            return "travado", silent_since
+            return "frozen", silent_since
         return prev, silent_since
     if launched or ping:
-        return "jogo", None
-    return "desligado", None
+        return "game", None
+    return "off", None
 
 
 FATX_MAX_NAME = 42
@@ -75,7 +77,7 @@ _FATX_BAD = re.compile(r'[<>:"|*?\\/]|[^\x20-\x7e]')
 
 
 def fatx_ok(name: str) -> bool:
-    """O FATX do Xbox aceita nomes de até 42 caracteres ASCII imprimíveis, sem <>:"|*?\\/."""
+    r"""Xbox FATX accepts names of up to 42 printable ASCII characters, without <>:"|*?\/."""
     return 0 < len(name) <= FATX_MAX_NAME and not _FATX_BAD.search(name)
 
 
@@ -103,7 +105,7 @@ def parse_number(text: str) -> float:
 
 
 def parse_drivestat(reply: str) -> dict[str, dict[str, float]]:
-    """'200 C\\t Used: 187,30MB\\tFree: 312,63MB\\tTotal: 499,92MB\\t\\tD ...' -> MB por drive."""
+    r"""'200 C\t Used: 187,30MB\tFree: 312,63MB\tTotal: 499,92MB\t\tD ...' -> MB per drive."""
     body = reply[4:] if reply[:3].isdigit() else reply
     drives: dict[str, dict[str, float]] = {}
     for m in re.finditer(
@@ -159,7 +161,7 @@ class XbeInfo:
     title_id: str
     region: int
     version: int
-    image_offset: int | None  # seção $$XTIMAG no arquivo
+    image_offset: int | None  # $$XTIMAG section in the file
     image_size: int
 
 
@@ -168,7 +170,7 @@ XBE_HEADER_READ = 0x4000
 
 def parse_xbe(data: bytes) -> XbeInfo:
     if data[:4] != b"XBEH":
-        raise XboxError("não é um XBE")
+        raise XboxError("not an XBE")
 
     def u32(off: int) -> int:
         return struct.unpack_from("<I", data, off)[0]
@@ -194,14 +196,14 @@ def parse_xbe(data: bytes) -> XbeInfo:
     return XbeInfo(title, title_id, region, version, image_offset, image_size)
 
 
-_BCN = {0x0C: (1, 8), 0x0E: (2, 16), 0x0F: (3, 16)}  # D3DFMT_DXT1/DXT3/DXT5 -> (bcn, bytes/bloco)
+_BCN = {0x0C: (1, 8), 0x0E: (2, 16), 0x0F: (3, 16)}  # D3DFMT_DXT1/DXT3/DXT5 -> (bcn, bytes/block)
 
 
 def xpr_to_png(data: bytes) -> bytes | None:
-    """TitleImage.xbx / $$XTIMAGE (XPR0 com textura DXT) -> PNG. None se o formato não for DXT."""
+    """TitleImage.xbx / $$XTIMAGE (XPR0 with a DXT texture) -> PNG. None if the format is not DXT."""
     if data[:4] != b"XPR0":
         return None
-    from PIL import Image  # Pillow vem com o HA
+    from PIL import Image  # Pillow ships with HA
 
     header = struct.unpack_from("<I", data, 8)[0]
     fmt = struct.unpack_from("<I", data, 0x18)[0]
@@ -227,9 +229,9 @@ def parse_title_meta(data: bytes) -> str | None:
     return m.group(1).strip() if m else None
 
 
-# ---------------------------------------------------------------- Config.xml do UnleashX
+# ---------------------------------------------------------------- UnleashX Config.xml
 
-# chave -> (regex com 1 grupo de valor, tipo)
+# key -> (regex with 1 value group, type)
 CONFIG_FIELDS: dict[str, tuple[str, str]] = {
     "sntp": (r'<SNTP Synchronize="(\w+)"', "bool"),
     "sntp_server": (r'<SNTP Synchronize="\w+">([^<]*)<', "str"),
@@ -269,25 +271,25 @@ def parse_config(text: str) -> dict[str, object]:
 
 
 def set_config(text: str, key: str, value: object) -> str:
-    """Troca só o valor do campo, preservando o resto do arquivo (layout, CRLF)."""
+    """Replace only the field value, keeping the rest of the file (layout, CRLF)."""
     pattern, kind = CONFIG_FIELDS[key]
     m = re.search(pattern, text)
     if not m:
-        raise XboxError(f"campo {key} não existe no Config.xml")
+        raise XboxError(f"field {key} does not exist in Config.xml")
     old = m.group(1)
     if kind == "bool":
-        # mantém o estilo do arquivo (Yes/No ou True/False)
+        # keep the file style (Yes/No or True/False)
         new = ("True" if value else "False") if old.lower() in ("true", "false") else ("Yes" if value else "No")
     else:
         new = str(value)
     return text[: m.start(1)] + new + text[m.end(1) :]
 
 
-# ---------------------------------------------------------------- cliente FTP
+# ---------------------------------------------------------------- FTP client
 
 
 class XboxClient:
-    """Uma conexão por operação (o UnleashX aceita poucos usuários); serializado por lock."""
+    """One connection per operation (UnleashX accepts few users); serialized by a lock."""
 
     def __init__(self, host: str, username: str = "xbox", password: str = "xbox", port: int = 21) -> None:
         self.host = host
@@ -303,7 +305,7 @@ class XboxClient:
             try:
                 ftp.connect(self.host, self.port)
             except (OSError, EOFError) as err:
-                # timeout (conectado sem banner ou SYN sem resposta) != recusa (porta fechada)
+                # timeout (connected with no banner or unanswered SYN) != refused (port closed)
                 hung = isinstance(err, TimeoutError)
                 ftp.close()
                 raise (XboxHung if hung else XboxOffline)(str(err)) from err
@@ -317,11 +319,11 @@ class XboxClient:
             finally:
                 try:
                     ftp.quit()
-                except Exception:  # noqa: BLE001 - fechar sempre
+                except Exception:  # always close
                     ftp.close()
 
     def probe(self) -> dict[str, str]:
-        """Banner + SYST. Levanta XboxOffline se o FTP não atende."""
+        """Banner + SYST. Raises XboxOffline if the FTP does not answer."""
         with self.session() as ftp:
             banner = ftp.getwelcome()
             try:
@@ -335,14 +337,16 @@ class XboxClient:
             return ftp.sendcmd(f"SITE {command}")
 
     def site_fire(self, command: str) -> str:
-        """SITE de energia: o UnleashX executa e às vezes responde 502 (POWERCYCLE cai no fim do
-        tratador) ou derruba a conexão. Só falha de verdade se nem conectou."""
+        """Power SITE command: UnleashX runs it and sometimes answers 502 or drops the connection.
+
+        POWERCYCLE falls through to the end of the handler. Only a real failure if it never connected.
+        """
         try:
             return self.site(command)
         except XboxOffline:
             raise
         except XboxError as err:
-            return f"enviado ({err})"
+            return f"sent ({err})"
 
     def drivestat(self) -> dict[str, dict[str, float]]:
         return parse_drivestat(self.site("DRIVESTAT"))
@@ -356,7 +360,7 @@ class XboxClient:
         return m.group(1) if m else None
 
     def execute(self, xbox_path: str) -> str:
-        # EXEC responde 200/550 de verdade antes de trocar de XBE: aqui o erro importa
+        # EXEC really answers 200/550 before switching XBE: here the error matters
         try:
             return self.site(f"EXEC {xbox_path}")
         except XboxOffline:
@@ -364,10 +368,10 @@ class XboxClient:
         except XboxError as err:
             if "does not exist" in str(err) or "Failed" in str(err):
                 raise
-            return f"enviado ({err})"
+            return f"sent ({err})"
 
     def listdir(self, path: str) -> list[Entry]:
-        # LIST com caminho completo trava no UnleashX: sempre CWD + LIST
+        # LIST with a full path hangs UnleashX: always CWD + LIST
         with self.session() as ftp:
             return self._listdir(ftp, path)
 
@@ -392,7 +396,7 @@ class XboxClient:
         if size is None:
             ftp.retrbinary(f"RETR {ftp_path}", buf.extend, rest=offset or None)
             return bytes(buf)
-        # leitura parcial: abre o canal de dados na mão e corta quando chega no tamanho
+        # partial read: open the data channel by hand and cut it once the size is reached
         ftp.voidcmd("TYPE I")
         conn = ftp.transfercmd(f"RETR {ftp_path}", rest=offset or None)
         try:
@@ -406,7 +410,7 @@ class XboxClient:
         try:
             ftp.voidresp()
         except (ftplib.Error, OSError, EOFError):
-            pass  # 426/abort esperado quando cortamos a transferência
+            pass  # 426/abort expected when we cut the transfer
         return bytes(buf)
 
     def write(self, path: str, data: bytes) -> None:
@@ -423,13 +427,13 @@ class XboxClient:
                 except ftplib.error_perm:
                     pass
 
-    # ------------------------------------------------------------ alto nível
+    # ------------------------------------------------------------ high level
 
     def xbe_info(self, path: str) -> XbeInfo:
         return parse_xbe(self.read(path, XBE_HEADER_READ))
 
     def title_image(self, title_id: str, xbe_path: str | None = None) -> bytes | None:
-        """PNG da capa: TitleImage.xbx salvo pelo dashboard, senão a seção $$XTIMAGE do XBE."""
+        """Cover PNG: TitleImage.xbx saved by the dashboard, else the XBE $$XTIMAGE section."""
         with self.session() as ftp:
             for folder in ("E:\\UDATA", "E:\\TDATA"):
                 try:
@@ -446,8 +450,11 @@ class XboxClient:
         return None
 
     def scan_library(self, roots: list[tuple[str, str]], known: dict[str, dict]) -> list[dict]:
-        """roots = [(categoria, 'F:\\Games'), ...]. Pastas com .xbe viram itens; pastas sem .xbe
-        (ex.: F:\\Apps\\Emulators) são abertas mais um nível. `known` evita reler XBE igual."""
+        r"""Scan roots = [(category, 'F:\Games'), ...] for items.
+
+        Folders with an .xbe become items; folders without one (e.g. F:\Apps\Emulators) are
+        opened one more level. `known` avoids re-reading an unchanged XBE.
+        """
         items: list[dict] = []
         with self.session() as ftp:
             for category, root in roots:
@@ -493,7 +500,7 @@ class XboxClient:
         }
 
     def saves(self) -> list[dict]:
-        """Saves em E:\\UDATA: nome do jogo pelo TitleMeta.xbx e quantidade de slots."""
+        r"""Saves in E:\UDATA: game name from TitleMeta.xbx and number of slots."""
         out = []
         with self.session() as ftp:
             for entry in self._listdir(ftp, "E:\\UDATA"):
@@ -513,9 +520,10 @@ class XboxClient:
         return out
 
     def upload_tree(self, local_dir: str, remote_dir: str, progress=None) -> tuple[int, int, list[str]]:
-        """Envia uma pasta local inteira (ex.: um jogo) para remote_dir.
+        """Upload a whole local folder (e.g. a game) to remote_dir.
 
-        Nomes que o FATX não aceita são pulados. Retorna (arquivos, bytes, pulados)."""
+        Names FATX does not accept are skipped. Returns (files, bytes, skipped).
+        """
         import os
 
         files = total = 0
@@ -549,10 +557,10 @@ class XboxClient:
                         progress(files, total, f"{target}/{name}")
         return files, total, skipped
 
-    # ------------------------------------------------------------ telemetria do XBMC sem HTTP
+    # ------------------------------------------------------------ XBMC telemetry without HTTP
 
     def ensure_script(self) -> bool:
-        """Instala/atualiza o ha_info.py (só pelo UnleashX: o FTP do XBMC recusa caminho absoluto)."""
+        """Install/update ha_info.py (only from UnleashX: the XBMC FTP refuses absolute paths)."""
         try:
             current = self.read(SCRIPT_PATH, 120).decode("latin-1")
         except XboxError:
@@ -564,7 +572,7 @@ class XboxClient:
         return True
 
     def run_xbmc_script(self, full: bool = False, wait: float | None = None) -> dict:
-        """SITE RunScript no FTP do XBMC e espera a saída com o mesmo nonce."""
+        """SITE RunScript on the XBMC FTP and wait for the output with the same nonce."""
         import secrets
         import time
 
@@ -579,10 +587,10 @@ class XboxClient:
                 continue
             if data["nonce"] == nonce:
                 return data
-        raise XboxError("o script de telemetria não respondeu (XBMC ocupado?)")
+        raise XboxError("the telemetry script did not answer (XBMC busy?)")
 
     def download_tree(self, path: str, sink) -> int:
-        """Baixa recursivamente chamando sink(caminho_relativo, bytes). Retorna nº de arquivos."""
+        """Download recursively, calling sink(relative_path, bytes). Returns the number of files."""
         count = 0
         with self.session() as ftp:
             stack = [("", path)]
@@ -607,18 +615,18 @@ def tcp_open(host: str, port: int, timeout: float = 2.0) -> bool:
         return False
 
 
-# ---------------------------------------------------------------- XBMC (HTTP API do XBMC 2.x)
+# ---------------------------------------------------------------- XBMC (XBMC 2.x HTTP API)
 
-# códigos de botão do keymap do XBMC 2.x (SendKey)
+# button codes from the XBMC 2.x keymap (SendKey)
 XBMC_KEYS = {
-    "a": 256, "ok": 256, "b": 257, "voltar": 257, "x": 258, "y": 259, "preto": 260, "branco": 261,
+    "a": 256, "ok": 256, "b": 257, "x": 258, "y": 259, "black": 260, "white": 261,
     "lt": 262, "rt": 263, "l3": 264, "r3": 265,
-    "cima": 270, "baixo": 271, "esquerda": 272, "direita": 273, "start": 274, "back": 275,
+    "up": 270, "down": 271, "left": 272, "right": 273, "start": 274, "back": 275,
 }
 
 
 def strip_html(text: str) -> list[str]:
-    """'<html><li>Filename:x\\n<li>Title:y</html>' -> ['Filename:x', 'Title:y']."""
+    r"""'<html><li>Filename:x\n<li>Title:y</html>' -> ['Filename:x', 'Title:y']."""
     text = re.sub(r"<li>", "\n", text, flags=re.I)
     text = re.sub(r"<[^>]+>", "", text)
     return [line.strip() for line in text.splitlines() if line.strip()]
@@ -647,7 +655,7 @@ def parse_first_number(text: str) -> float | None:
 
 
 def parse_duration(text: str | None) -> int | None:
-    """'01:02:03' / '02:03' -> segundos."""
+    """'01:02:03' / '02:03' -> seconds."""
     if not text or not re.fullmatch(r"\d+(?::\d+){1,2}", text):
         return None
     secs = 0
@@ -657,7 +665,7 @@ def parse_duration(text: str | None) -> int | None:
 
 
 class XbmcClient:
-    """HTTP API do XBMC (precisa de <webserver>true</webserver> no guisettings.xml)."""
+    """XBMC HTTP API (needs <webserver>true</webserver> in guisettings.xml)."""
 
     def __init__(self, host: str, port: int = 80) -> None:
         self.base = f"http://{host}:{port}/xbmcCmds/xbmcHttp"
@@ -670,16 +678,16 @@ class XbmcClient:
         if parameter is not None:
             url += "&parameter=" + quote(parameter, safe=":;\\(),.")
         try:
-            with urlopen(url, timeout=timeout) as resp:  # noqa: S310 - LAN
+            with urlopen(url, timeout=timeout) as resp:  # LAN only
                 return resp.read().decode("utf-8", "replace")
-        except Exception as err:  # noqa: BLE001 - http.client levanta HTTPException, não OSError
+        except Exception as err:  # http.client raises HTTPException, not OSError
             raise XboxError(f"XBMC: {err!r}") from err
 
     def lines(self, command: str, parameter: str | None = None) -> list[str]:
         return strip_html(self.cmd(command, parameter))
 
     def status(self, with_system: bool = True) -> dict:
-        """Estado do XBMC. with_system=False pula as 5 leituras de telemetria (servidor web frágil)."""
+        """XBMC state. with_system=False skips the 5 telemetry reads (fragile web server)."""
         info = {}
         for label, key in (
             ("system.gputemperature", "gpu_temp"),
@@ -713,7 +721,7 @@ class XbmcClient:
         data = re.sub(r"[^A-Za-z0-9+/=]", "", re.sub(r"<[^>]+>", "", raw))
         img = base64.b64decode(data + "=" * (-len(data) % 4))
         if not img.startswith(b"\xff\xd8"):
-            raise XboxError("XBMC não devolveu JPEG")
+            raise XboxError("XBMC did not return a JPEG")
         return img
 
     def send_key(self, name_or_code: str | int) -> None:
@@ -724,17 +732,17 @@ class XbmcClient:
         return " ".join(self.lines("ExecBuiltIn", action))
 
 
-# ---------------------------------------------------------------- telemetria do XBMC sem HTTP API
+# ---------------------------------------------------------------- XBMC telemetry without the HTTP API
 
-# O XBMC4Gamers vem sem servidor web; o FTP dele roda built-ins (SITE RunScript), então a
-# telemetria sai de um script Python 2 deixado no disco. Fica em E:\TDATA (gravável pelo UnleashX).
-SCRIPT_DIR = "E:\\TDATA\\ha_xbox_classico"
+# XBMC4Gamers ships without a web server; its FTP runs built-ins (SITE RunScript), so the
+# telemetry comes from a Python 2 script left on disk. It lives in E:\TDATA (writable from UnleashX).
+SCRIPT_DIR = "E:\\TDATA\\ha_original_xbox"
 SCRIPT_PATH = SCRIPT_DIR + "\\ha_info.py"
 SCRIPT_OUT = SCRIPT_DIR + "\\ha_info.txt"
-SCRIPT_VERSION = "4"
+SCRIPT_VERSION = "5"
 
 XBMC_SCRIPT = (
-    "# ha_xbox_classico v" + SCRIPT_VERSION + " - telemetria para o Home Assistant (Python 2 do XBMC)\r\n"
+    "# ha_original_xbox v" + SCRIPT_VERSION + " - telemetry for Home Assistant (XBMC Python 2)\r\n"
     "import sys, time, xbmc, xbmcgui\r\n"
     "nonce = len(sys.argv) > 1 and sys.argv[1] or ''\r\n"
     "full = len(sys.argv) > 2 and sys.argv[2] == 'full'\r\n"
@@ -783,17 +791,17 @@ SCRIPT_FIELDS = {
 }
 
 
-# ids de janela do XBMC (xbmcgui.getCurrentWindowId)
+# XBMC window ids (xbmcgui.getCurrentWindowId)
 XBMC_WINDOWS = {
-    10000: "Início", 10001: "Programas", 10002: "Imagens", 10003: "Arquivos", 10004: "Configurações",
-    10005: "Música", 10006: "Vídeos", 10007: "Informações do sistema", 10024: "Vídeos (arquivos)",
-    10025: "Vídeos (biblioteca)", 10500: "Lista de reprodução", 10501: "Música (arquivos)",
-    10502: "Música (biblioteca)", 12005: "Vídeo em tela cheia", 12006: "Visualização", 12007: "Proteção de tela",
+    10000: "Home", 10001: "Programs", 10002: "Pictures", 10003: "Files", 10004: "Settings",
+    10005: "Music", 10006: "Videos", 10007: "System info", 10024: "Videos (files)",
+    10025: "Videos (library)", 10500: "Playlist", 10501: "Music (files)",
+    10502: "Music (library)", 12005: "Fullscreen video", 12006: "Visualisation", 12007: "Screensaver",
 }
 
 
 def _hms(seconds: str | None) -> str:
-    """'95' -> '01:35'; vazio/inválido -> ''."""
+    """'95' -> '01:35'; empty/invalid -> ''."""
     if not seconds or not seconds.strip().isdigit():
         return ""
     s = int(seconds)
@@ -801,13 +809,14 @@ def _hms(seconds: str | None) -> str:
 
 
 def parse_script_output(text: str) -> dict:
-    """Saída do ha_info.py -> {'nonce':..., campo: valor}; vazios e 'ocupado' viram None."""
+    """ha_info.py output -> {'nonce':..., field: value}; empty and 'busy' become None."""
     raw = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
     out: dict = {"nonce": raw.get("nonce", "")}
     wid = raw.get("window.id", "").strip()
-    window = XBMC_WINDOWS.get(int(wid), f"Janela {wid}") if wid.isdigit() else None
+    window = XBMC_WINDOWS.get(int(wid), f"Window {wid}") if wid.isdigit() else None
     for label, (key, conv) in SCRIPT_FIELDS.items():
         value = raw.get(label, "").strip()
+        # "ocupado"/"desconhecido": busy/unknown labels of a Portuguese-language XBMC
         if not value or value.lower() in ("busy", "ocupado", "unknown", "desconhecido"):
             out[key] = None
             continue

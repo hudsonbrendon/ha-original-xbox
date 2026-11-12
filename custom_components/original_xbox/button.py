@@ -1,4 +1,4 @@
-"""Botões: energia, bandeja, rede/FTP, dashboards, backup e biblioteca."""
+"""Buttons: power, tray, network/FTP, dashboards, backup and library."""
 
 from __future__ import annotations
 
@@ -13,17 +13,17 @@ from .api import XboxError
 from .const import MS_DASHBOARD
 from .entity import XboxControlEntity, XboxDashboardEntity
 
-# chave -> (comando SITE, derruba a conexão?, categoria)
+# key -> (SITE command, drops the connection?, category)
 SITE_BUTTONS = {
-    # REBOOT do UnleashX 0.37 chama XLaunchNewImage(NULL) e falha calado; POWERCYCLE reinicia de fato
-    "reiniciar": ("POWERCYCLE", True, None),
-    "desligar": ("SHUTDOWN", True, None),
-    "abrir_bandeja": ("TRAYOPEN", False, None),
-    "fechar_bandeja": ("TRAYCLOSE", False, None),
-    "reiniciar_rede": ("NETRESET", True, EntityCategory.DIAGNOSTIC),
-    "reiniciar_ftp": ("FTPRESET", True, EntityCategory.DIAGNOSTIC),
+    # UnleashX 0.37 REBOOT calls XLaunchNewImage(NULL) and fails silently; POWERCYCLE really restarts
+    "restart": ("POWERCYCLE", True, None),
+    "shut_down": ("SHUTDOWN", True, None),
+    "open_tray": ("TRAYOPEN", False, None),
+    "close_tray": ("TRAYCLOSE", False, None),
+    "restart_network": ("NETRESET", True, EntityCategory.DIAGNOSTIC),
+    "restart_ftp": ("FTPRESET", True, EntityCategory.DIAGNOSTIC),
 }
-OTHER_BUTTONS = ["recarregar_dashboard", "dashboard_microsoft", "backup_saves", "atualizar_biblioteca"]
+OTHER_BUTTONS = ["reload_dashboard", "microsoft_dashboard", "backup_saves", "refresh_library"]
 
 
 async def async_setup_entry(
@@ -36,35 +36,35 @@ async def async_setup_entry(
     )
 
 
-POWER_KEYS = {"reiniciar", "desligar", "recarregar_dashboard", "dashboard_microsoft"}
+POWER_KEYS = {"restart", "shut_down", "reload_dashboard", "microsoft_dashboard"}
 
 
 class XboxButton(XboxDashboardEntity, ButtonEntity):
     def __init__(self, coordinator, key: str) -> None:
         super().__init__(coordinator, key)
-        if key == "reiniciar":
+        if key == "restart":
             self._attr_device_class = ButtonDeviceClass.RESTART
         if key in SITE_BUTTONS:
             self._attr_entity_category = SITE_BUTTONS[key][2]
-        elif key in ("backup_saves", "atualizar_biblioteca", "recarregar_dashboard"):
+        elif key in ("backup_saves", "refresh_library", "reload_dashboard"):
             self._attr_entity_category = EntityCategory.CONFIG
 
     async def async_press(self) -> None:
         key = self._attr_translation_key
         c = self.coordinator
         try:
-            if key in ("reiniciar", "desligar"):
+            if key in ("restart", "shut_down"):
                 await c.async_power(SITE_BUTTONS[key][0])
             elif key in SITE_BUTTONS:
                 command, fire, _ = SITE_BUTTONS[key]
                 await c.async_site(command, fire=fire)
-            elif key == "recarregar_dashboard":
+            elif key == "reload_dashboard":
                 await c.async_launch(c.dashboard_path)
-            elif key == "dashboard_microsoft":
+            elif key == "microsoft_dashboard":
                 await c.async_launch(MS_DASHBOARD)
             elif key == "backup_saves":
                 await async_backup_saves(self.hass, c)
-            elif key == "atualizar_biblioteca":
+            elif key == "refresh_library":
                 c.async_start_scan()
         except XboxError as err:
             raise HomeAssistantError(str(err)) from err
@@ -72,4 +72,4 @@ class XboxButton(XboxDashboardEntity, ButtonEntity):
 
 
 class XboxPowerButton(XboxControlEntity, XboxButton):
-    """Energia e troca de dashboard funcionam também a partir do XBMC."""
+    """Power and dashboard switching also work from XBMC."""

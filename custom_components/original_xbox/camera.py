@@ -1,4 +1,4 @@
-"""Câmera: screenshot da tela do Xbox (TakeScreenshot da HTTP API do XBMC)."""
+"""Camera: screenshot of the Xbox screen (XBMC HTTP API TakeScreenshot)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class XboxScreen(XboxXbmcEntity, Camera):
     _attr_frame_interval = 10
 
     def __init__(self, coordinator) -> None:
-        XboxXbmcEntity.__init__(self, coordinator, "tela")
+        XboxXbmcEntity.__init__(self, coordinator, "screen")
         Camera.__init__(self)
         self._last: bytes | None = None
 
@@ -32,5 +32,5 @@ class XboxScreen(XboxXbmcEntity, Camera):
         try:
             self._last = await self.hass.async_add_executor_job(self.coordinator.xbmc.screenshot, 640)
         except XboxError as err:
-            LOGGER.debug("screenshot falhou: %s", err)
+            LOGGER.debug("screenshot failed: %s", err)
         return self._last

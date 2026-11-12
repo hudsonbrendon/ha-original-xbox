@@ -1,4 +1,4 @@
-"""Controle remoto: botões do controle do Xbox enviados pela HTTP API do XBMC."""
+"""Remote: Xbox controller buttons sent through the XBMC HTTP API."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .entity import XboxXbmcEntity
 async def async_setup_entry(
     hass: HomeAssistant, entry: XboxConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([XboxRemote(entry.runtime_data, "controle")])
+    async_add_entities([XboxRemote(entry.runtime_data, "controller")])
 
 
 class XboxRemote(XboxXbmcEntity, RemoteEntity):
@@ -28,7 +28,7 @@ class XboxRemote(XboxXbmcEntity, RemoteEntity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return {"comandos": sorted(XBMC_KEYS)}
+        return {"commands": sorted(XBMC_KEYS)}
 
     async def async_send_command(self, command: Iterable[str], **kwargs) -> None:
         repeats = int(kwargs.get("num_repeats", 1))
@@ -36,7 +36,7 @@ class XboxRemote(XboxXbmcEntity, RemoteEntity):
         for _ in range(repeats):
             for cmd in command:
                 if cmd.lower() not in XBMC_KEYS and not str(cmd).isdigit():
-                    raise HomeAssistantError(f"comando desconhecido: {cmd} (use {', '.join(sorted(XBMC_KEYS))})")
+                    raise HomeAssistantError(f"unknown command: {cmd} (use {', '.join(sorted(XBMC_KEYS))})")
                 try:
                     await self.hass.async_add_executor_job(self.coordinator.xbmc.send_key, cmd)
                 except XboxError as err:
