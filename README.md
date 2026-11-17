@@ -1,15 +1,17 @@
 <p align="center">
-  <img src="assets/original-xbox-logo.png" alt="Original Xbox" width="420">
+  <img src="custom_components/original_xbox/brand/logo@2x.png" alt="Original Xbox" height="128">
 </p>
 
 # Original Xbox for Home Assistant
 
 [![Tests](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/tests.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/tests.yml)
 [![Hassfest](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/hassfest.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/hassfest.yml)
-[![Validate](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml)
+[![HACS](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml/badge.svg)](https://github.com/hudsonbrendon/ha-original-xbox/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/hudsonbrendon/ha-original-xbox?sort=semver)](https://github.com/hudsonbrendon/ha-original-xbox/releases)
+[![Downloads](https://img.shields.io/github/downloads/hudsonbrendon/ha-original-xbox/total)](https://github.com/hudsonbrendon/ha-original-xbox/releases)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
-[![Release](https://img.shields.io/github/v/release/hudsonbrendon/ha-original-xbox)](https://github.com/hudsonbrendon/ha-original-xbox/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.8.0%2B-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![License](https://img.shields.io/github/license/hudsonbrendon/ha-original-xbox)](LICENSE)
 
 Monitor and control a **softmodded or modchipped original Xbox (2001)** from Home Assistant —
 what is running, the game library with cover art, disk space, temperatures, power, the
@@ -57,6 +59,9 @@ disc tray, dashboard settings, file transfers and XBMC media playback.
   [XBMC4Gamers](#xbmc4gamers-no-web-server).
 
 ## Installation
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hudsonbrendon&repository=ha-original-xbox&category=integration)
+[![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=original_xbox)
 
 ### HACS (recommended)
 
